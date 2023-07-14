@@ -1,4 +1,3 @@
-from abc import ABC
 import gurobipy as gp
 
 from utils import Formulation, Instance, Solution
@@ -56,10 +55,23 @@ class MTZFormulation(Formulation):
                 name=f'visit_{i}'
             )
 
-    def constraint_leave_depot(self):
+    def constraint_number_of_vehicles(self):
+        self.solver.addConstr(
+            gp.quicksum(self.y[0, k] for k in self.instance.K) <= len(self.instance.K),
+            name='number_of_vehicles'
+        )
+
+    def constraint_number_of_vehicles_hard(self):
         self.solver.addConstr(
             gp.quicksum(self.y[0, k] for k in self.instance.K) == len(self.instance.K),
-            name='leave_depot'
+            name='number_of_vehicles_hard'
+        )
+
+    def constraint_enter_depot(self):
+        self.solver.addConstr(
+            gp.quicksum(self.x[0, i, k] for k in self.instance.K for i in self.instance.N) ==
+            gp.quicksum(self.x[i, 0, k] for k in self.instance.K for i in self.instance.N),
+            name='enter_depot'
         )
 
     def constraint_max_time(self):
@@ -88,6 +100,18 @@ class MTZFormulation(Formulation):
                     self.x[i, i, k] == 0,
                     name=f'not_stay_{i}_{k}'
                 )
+
+    def constraint_already_visited(self):
+        for i in self.instance.N:
+            for k in self.instance.K:
+                for j in self.instance.N:
+                    for q in self.instance.K:
+                        if k == q or i == j:
+                            continue
+                        self.solver.addConstr(
+                            self.x[j, i, q] <= self.y[i, k],
+                            name=f'already_visited_{i}_{k}_{j}_{q}'
+                        )
 
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
