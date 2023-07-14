@@ -34,9 +34,9 @@ class Instance:
                 self.tau[c] = 1
 
     def print(self):
-        print(f'N = {self.N} (sites)')
-        print(f'K = {self.K} (vehicles)')
-        print(f'C = {self.C} (characteristics)')
+        print(f'N = {len(self.N)} (sites)')
+        print(f'K = {len(self.K)} (vehicles)')
+        print(f'C = {len(self.C)} (characteristics)')
         print()
 
 

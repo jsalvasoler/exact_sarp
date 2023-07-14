@@ -26,3 +26,7 @@ class Config:
     @property
     def activations(self):
         return self.__config['activations']
+
+    @property
+    def print_solution(self):
+        return self.__config['solver']['print_solution']
