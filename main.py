@@ -1,12 +1,12 @@
 from mtz_formulation import MTZFormulation
 from optimizer import Optimizer
-from utils import Formulation, Instance
+from utils import Instance
 
 if __name__ == '__main__':
-    instance = Instance(5, 2, 10, 3)
+    instance = Instance(10, 2, 10, 10)
 
     activations = {
-        'define': True, 'leave': True, 'enter': True, 'visit': True, 'leave_depot': True, 'max_time': True
+        'not_stay': True,
     }
 
     formulations = {

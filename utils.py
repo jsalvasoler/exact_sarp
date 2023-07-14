@@ -20,7 +20,7 @@ class Instance:
         self.T_max = T_max
         self.C = {i + 1 for i in range(C_size)}
         self.alpha = {
-            (i, c): random.randint(0, 1)
+            (i, c): 1 if random.random() < 0.25 else 0
             for c in self.C
             for i in self.N
         }
@@ -106,6 +106,8 @@ class Solution:
         self.inst = inst
         self.x = x
         self.obj = obj
+        self.coverage_ratios = None
+        self.y = None
 
         self.check_obj()
 
@@ -113,25 +115,54 @@ class Solution:
         """
         Check if the objective provided by the solver matches the objective calculated using the solution.
         """
-        y = {
+        self.y = {
             (i, k): sum(self.x[i, j, k] for j in self.inst.N_0)
             for i in self.inst.N_0
             for k in self.inst.K
         }
-        coverage_ratios = {
-            c: sum(self.inst.alpha[i, c] * y[i, k] for i in self.inst.N for k in self.inst.K) / self.inst.tau[c]
+        self.coverage_ratios = {
+            c: sum(self.inst.alpha[i, c] * self.y[i, k] for i in self.inst.N for k in self.inst.K) / self.inst.tau[c]
             for c in self.inst.C
         }
-        calculated_obj = min(coverage_ratios.values())
+        calculated_obj = min(self.coverage_ratios.values())
         assert abs(self.obj - calculated_obj) < 1e-6, \
             f'Objective provided by the solver ({self.obj}) does not match the objective ' \
             f'calculated using the solution ({calculated_obj}).'
+        self.obj = calculated_obj
 
     def print(self):
-        print('Solution:')
-        for i in self.inst.N_0:
-            for j in self.inst.N_0:
-                for k in self.inst.K:
-                    if self.x[i, j, k] == 1:
-                        print(f'x[{i}, {j}, {k}] = 1')
+        print(f"{'-' * 30}")
+        print(f"{'-' * 10} Solution {'-' * 10}")
+        print(f"{'-' * 30}")
         print(f'Objective: {self.obj}')
+
+        print(' --Routes:')
+        for k in self.inst.K:
+            route = self.find_route(k)
+            print(f'Route of vehicle {k}: {route}')
+        print(' --Coverage ratios:')
+        for c in self.inst.C:
+            print(f'CR of characteristic {c}: {self.coverage_ratios[c]}\n'
+                  f'  Represented by {set(i for i in self.inst.N if self.inst.alpha[i, c] == 1)}\n'
+                  f'  Covered by {set(i for i in self.inst.N if self.inst.alpha[i, c] == 1 and sum(self.y[i, k] for k in self.inst.K) >= 1)}')
+        print(' --Characteristics distribution:')
+        for i in self.inst.N:
+            print(f"Site {i}: {set(c for c in self.inst.C if self.inst.alpha[i, c] == 1)}"
+                  f"{' -> Selected' if sum(self.y[i, k] for k in self.inst.K) >= 1 else ''}")
+
+        print(f"{'-' * 30}")
+        print(f"{'-' * 30}")
+
+    def find_route(self, k):
+        route = [0]
+        while True:
+            j = self.find_next(route[-1], k, route)
+            if not j:
+                return route + [0]
+            route.append(j)
+
+    def find_next(self, i, k, route):
+        for j in self.inst.N_0:
+            if self.x[i, j, k] == 1 and j not in route:
+                return j
+        return None

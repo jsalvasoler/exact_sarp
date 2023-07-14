@@ -12,10 +12,6 @@ class MTZFormulation(Formulation):
         self.u = {}
         self.z = None
 
-        self.constraint_names = [
-            'define', 'leave', 'enter', 'visit', 'leave_depot', 'max_time'
-        ]
-
     def define_variables(self):
         for i in self.instance.N_0:
             for k in self.instance.K:
@@ -29,12 +25,12 @@ class MTZFormulation(Formulation):
                                            ub=len(self.instance.N) - 1)
         self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=gp.GRB.INFINITY)
 
-    def constraint_define(self):
+    def constraint_define_obj(self):
         for c in self.instance.C:
             self.solver.addConstr(
-                self.z * self.instance.tau[c] <= gp.quicksum(self.instance.alpha[i, k] * self.y[i, k]
+                self.z * self.instance.tau[c] <= gp.quicksum(self.instance.alpha[i, c] * self.y[i, k]
                                                              for i in self.instance.N for k in self.instance.K),
-                name=f'define_z{c}'
+                name=f'define_obj_{c}'
             )
 
     def constraint_leave(self):
@@ -62,7 +58,7 @@ class MTZFormulation(Formulation):
 
     def constraint_leave_depot(self):
         self.solver.addConstr(
-            gp.quicksum(self.y[0, k] for k in self.instance.K) <= len(self.instance.K),
+            gp.quicksum(self.y[0, k] for k in self.instance.K) == len(self.instance.K),
             name='leave_depot'
         )
 
@@ -85,8 +81,19 @@ class MTZFormulation(Formulation):
                         name=f'mtz_{i}_{j}_{k}'
                     )
 
+    def constraint_not_stay(self):
+        for i in self.instance.N_0:
+            for k in self.instance.K:
+                self.solver.addConstr(
+                    self.x[i, i, k] == 0,
+                    name=f'not_stay_{i}_{k}'
+                )
+
     def fill_constraints(self):
-        for constraint_name in self.constraint_names:
+        # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
+        constraint_names = [method_name[11:] for method_name in dir(self) if method_name.startswith('constraint_')]
+
+        for constraint_name in constraint_names:
             self.constraints[constraint_name] = getattr(self, f'constraint_{constraint_name}')
 
     def define_objective(self):
@@ -94,7 +101,7 @@ class MTZFormulation(Formulation):
 
     def build_solution(self) -> Solution:
         x = {
-            (i, j, k): self.x[i, j, k].X
+            (i, j, k): 1 if self.x[i, j, k].X > 0.5 else 0
             for i in self.instance.N_0
             for j in self.instance.N_0
             for k in self.instance.K
