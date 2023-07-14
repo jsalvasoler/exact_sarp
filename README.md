@@ -1,6 +1,6 @@
 # Exact methodss for the SARP problem: Selective Assessmment Routing Problem
 
-This repository contains the implementation of the formulations and algorithms proposed in the research project **Exact methods for the SARP problem**. Below is a 
+This repository contains the implementation of the formulations and algorithms proposed in the research project **Exact methods for the SARP problem**. The following is the abstract of the project.
 
 ### Abstract
 In the immediate aftermath of a disaster, relief agencies perform rapid needs assessments to investigate the effects of the disaster on the affected 
