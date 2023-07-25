@@ -1,4 +1,4 @@
-from mtz_formulation import MTZFormulation
+from src.formulations.mtz_formulation import MTZFormulation
 from optimizer import Optimizer
 from src.config import Config
 from utils import Instance
