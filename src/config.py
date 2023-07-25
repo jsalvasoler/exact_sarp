@@ -30,3 +30,19 @@ class Config:
     @property
     def print_solution(self):
         return self.__config['solver']['print_solution']
+
+    @property
+    def instance_type(self):
+        return self.__config['execution']['instance_type']
+
+    @property
+    def n_instances(self):
+        return self.__config['execution']['n_instances']
+
+    @property
+    def formulation(self):
+        return self.__config['formulation']
+
+    @property
+    def data_dir(self):
+        return os.path.join(self.__root, 'data')

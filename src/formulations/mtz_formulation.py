@@ -1,6 +1,6 @@
 import gurobipy as gp
 
-from utils import Formulation, Instance, Solution
+from src.utils import Formulation, Instance, Solution
 
 
 class MTZFormulation(Formulation):
@@ -94,7 +94,7 @@ class MTZFormulation(Formulation):
                     )
 
     def constraint_not_stay(self):
-        for i in self.instance.N_0:
+        for i in self.instance.N:
             for k in self.instance.K:
                 self.solver.addConstr(
                     self.x[i, i, k] == 0,
@@ -115,10 +115,11 @@ class MTZFormulation(Formulation):
 
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
-        constraint_names = [method_name[11:] for method_name in dir(self) if method_name.startswith('constraint_')]
+        prefix = 'constraint_'
+        constraint_names = [method_name[len(prefix):] for method_name in dir(self) if method_name.startswith(prefix)]
 
         for constraint_name in constraint_names:
-            self.constraints[constraint_name] = getattr(self, f'constraint_{constraint_name}')
+            self.constraints[constraint_name] = getattr(self, f'{prefix}{constraint_name}')
 
     def define_objective(self):
         self.solver.setObjective(self.z, gp.GRB.MAXIMIZE)

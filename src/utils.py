@@ -5,7 +5,7 @@ import gurobipy as gp
 
 
 class Instance:
-    def __init__(self, N_size, K_size, T_max, C_size, seed=None):
+    def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None):
         if seed is not None:
             random.seed(seed)
 
@@ -16,28 +16,32 @@ class Instance:
             (i, j): 0 if i == j else random.randint(1, 10)
             for i in self.N_0
             for j in self.N_0
-        }
+        } if t is None else t
         self.T_max = T_max
         self.C = {i + 1 for i in range(C_size)}
         self.alpha = {
             (i, c): 1 if random.random() < 0.25 else 0
             for c in self.C
             for i in self.N
-        }
+        } if alpha is None else alpha
         self.tau = {
             c: sum(self.alpha[i, c] for i in self.N)
             for c in self.C
         }
         for c in self.C:
-            if self.tau[c] == 0:
+            if alpha is None and self.tau[c] == 0:
                 self.alpha[random.choice(list(self.N)), c] = 1
                 self.tau[c] = 1
+            elif alpha is not None and self.tau[c] == 0:
+                raise ValueError(f'No sites with characteristic {c}.')
+            else:
+                pass
 
     def print(self):
         print(f'N = {len(self.N)} (sites)')
         print(f'K = {len(self.K)} (vehicles)')
-        print(f'C = {len(self.C)} (characteristics)')
-        print()
+        print(f'T_max = {self.T_max} (max time)')
+        print(f'C = {len(self.C)} (characteristics)\n')
 
 
 class Formulation(ABC):
@@ -106,8 +110,11 @@ class Solution:
         self.inst = inst
         self.x = x
         self.obj = obj
-        self.coverage_ratios = None
-        self.y = None
+
+        self.y = self.calculate_y()
+        self.coverage_ratios = self.calculate_coverage_ratios()
+        self.Wp = self.calculate_Wp()
+        self.m = self.calculate_m()
 
         self.check_obj()
 
@@ -115,40 +122,74 @@ class Solution:
         """
         Check if the objective provided by the solver matches the objective calculated using the solution.
         """
-        self.y = {
-            (i, k): sum(self.x[i, j, k] for j in self.inst.N_0)
-            for i in self.inst.N_0
-            for k in self.inst.K
-        }
-        self.coverage_ratios = {
-            c: sum(self.inst.alpha[i, c] * self.y[i, k] for i in self.inst.N for k in self.inst.K) / self.inst.tau[c]
-            for c in self.inst.C
-        }
         calculated_obj = min(self.coverage_ratios.values())
         assert abs(self.obj - calculated_obj) < 1e-6, \
             f'Objective provided by the solver ({self.obj}) does not match the objective ' \
             f'calculated using the solution ({calculated_obj}).'
         self.obj = calculated_obj
 
-    def print(self):
+    def calculate_coverage_ratios(self):
+        """
+        Calculate the coverage ratios of the solution.
+        """
+        return {
+            c: sum(self.inst.alpha[i, c] * self.y[i, k] for i in self.inst.N for k in self.inst.K) / self.inst.tau[c]
+            for c in self.inst.C
+        }
+
+    def calculate_y(self):
+        """
+        Calculate the number of times each site is visited.
+        """
+        return {
+            (i, k): sum(self.x[i, j, k] for j in self.inst.N_0)
+            for i in self.inst.N_0
+            for k in self.inst.K
+        }
+
+    def calculate_Wp(self):
+        """
+        Calculate the duration of the routes.
+        """
+        return sum(
+            self.inst.t[i, j] * self.x[i, j, k]
+            for i in self.inst.N_0
+            for j in self.inst.N_0
+            for k in self.inst.K
+        )
+
+    def calculate_m(self):
+        """
+        Calculate the number of nodes visited.
+        """
+        return sum(
+            self.x[0, j, k]
+            for j in self.inst.N_0
+            for k in self.inst.K
+        )
+
+    def print(self, verbose):
         print(f"{'-' * 30}")
         print(f"{'-' * 10} Solution {'-' * 10}")
         print(f"{'-' * 30}")
-        print(f'Objective: {self.obj}')
+        print(f'Objective: {round(self.obj, 3)}')
+        print(f'Route duration (Wp): {round(self.Wp, 1)}')
+        print()
 
         print(' --Routes:')
         for k in self.inst.K:
             route = self.find_route(k)
             print(f'Route of vehicle {k}: {route}')
-        print(' --Coverage ratios:')
-        for c in self.inst.C:
-            print(f'CR of characteristic {c}: {self.coverage_ratios[c]}\n'
-                  f'  Represented by {set(i for i in self.inst.N if self.inst.alpha[i, c] == 1)}\n'
-                  f'  Covered by {set(i for i in self.inst.N if self.inst.alpha[i, c] == 1 and sum(self.y[i, k] for k in self.inst.K) >= 1)}')
-        print(' --Characteristics distribution:')
-        for i in self.inst.N:
-            print(f"Site {i}: {set(c for c in self.inst.C if self.inst.alpha[i, c] == 1)}"
-                  f"{' -> Selected' if sum(self.y[i, k] for k in self.inst.K) >= 1 else ''}")
+        if verbose == 2:
+            print(' --Coverage ratios:')
+            for c in self.inst.C:
+                print(f'CR of characteristic {c}: {self.coverage_ratios[c]}\n'
+                      f'  Represented by {set(i for i in self.inst.N if self.inst.alpha[i, c] == 1)}\n'
+                      f'  Covered by {set(i for i in self.inst.N if self.inst.alpha[i, c] == 1 and sum(self.y[i, k] for k in self.inst.K) >= 1)}')
+            print(' --Characteristics distribution:')
+            for i in self.inst.N:
+                print(f"Site {i}: {set(c for c in self.inst.C if self.inst.alpha[i, c] == 1)}"
+                      f"{' -> Selected' if sum(self.y[i, k] for k in self.inst.K) >= 1 else ''}")
 
         print(f"{'-' * 30}")
         print(f"{'-' * 30}")
