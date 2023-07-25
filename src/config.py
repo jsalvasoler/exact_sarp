@@ -46,3 +46,7 @@ class Config:
     @property
     def data_dir(self):
         return os.path.join(self.__root, 'data')
+
+    @property
+    def results_file(self):
+        return os.path.join(self.__root, 'results', 'results.csv')

@@ -1,4 +1,5 @@
 import os
+import random
 from typing import List, Dict
 from src.config import Config
 from src.utils import Instance
@@ -20,10 +21,14 @@ class InstanceLoader:
             instance = self.__load_instance(instance_name)
             instances[str(instance_name)] = instance
 
+        if self.__config.n_instances is not None:
+            # Select randomly n_instances instances using random.sample
+            instances = dict(random.sample(instances.items(), self.__config.n_instances))
+
         return instances
 
-    def __load_instance(self, instance_name):
-        instance_path = os.path.join(self.__instance_dir, instance_name)
+    def __load_instance(self, instance_file):
+        instance_path = os.path.join(self.__instance_dir, instance_file)
         with open(instance_path, 'r') as f:
             lines = f.readlines()
 
@@ -51,4 +56,4 @@ class InstanceLoader:
                 for i in range(N_size)
             }
 
-            return Instance(N_size, K_size, T_max, C_size, t, alpha)
+            return Instance(N_size, K_size, T_max, C_size, t, alpha, full_name=instance_file)

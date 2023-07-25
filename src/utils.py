@@ -5,7 +5,10 @@ import gurobipy as gp
 
 
 class Instance:
-    def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None):
+    def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None, full_name=None):
+        self.name = None if full_name is None else full_name[3:-4]
+        self.id = None if full_name is None else full_name[:2]
+
         if seed is not None:
             random.seed(seed)
 
@@ -76,6 +79,9 @@ class Formulation(ABC):
     def build_solution(self) -> 'Solution':
         """
         Build the solution from the variables of the formulation. Store it in self.solution.
+
+        Returns:
+            object: 
         """
         pass
 
@@ -115,6 +121,7 @@ class Solution:
         self.coverage_ratios = self.calculate_coverage_ratios()
         self.Wp = self.calculate_Wp()
         self.m = self.calculate_m()
+        self.routes = self.calculate_routes()
 
         self.check_obj()
 
@@ -127,6 +134,15 @@ class Solution:
             f'Objective provided by the solver ({self.obj}) does not match the objective ' \
             f'calculated using the solution ({calculated_obj}).'
         self.obj = calculated_obj
+
+    def calculate_routes(self):
+        """
+        Calculate the routes of the solution.
+        """
+        routes = {}
+        for k in self.inst.K:
+            routes[k] = self.find_route(k)
+        return routes
 
     def calculate_coverage_ratios(self):
         """
@@ -177,8 +193,7 @@ class Solution:
         print()
 
         print(' --Routes:')
-        for k in self.inst.K:
-            route = self.find_route(k)
+        for k, route in self.routes.items():
             print(f'Route of vehicle {k}: {route}')
         if verbose == 2:
             print(' --Coverage ratios:')
@@ -207,3 +222,6 @@ class Solution:
             if self.x[i, j, k] == 1 and j not in route:
                 return j
         return None
+
+    def routes_to_string(self):
+        return ' // '.join(f'Route of vehicle {k}: {route}' for k, route in self.routes.items())

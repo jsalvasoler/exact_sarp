@@ -1,6 +1,8 @@
 from src.config import Config
-from utils import Formulation
+from utils import Formulation, Solution
 import gurobipy as gp
+import pandas as pd
+from datetime import datetime
 
 
 class Optimizer:
@@ -20,10 +22,49 @@ class Optimizer:
             solution = self.formulation.build_solution()
             if self.config.print_solution:
                 solution.print(self.config.print_solution)
+            self.save_results(solution)
         elif self.solver.status == gp.GRB.INFEASIBLE:
             self.infeasibility_analysis()
+            return
         else:
-            pass
+            raise Exception(f'Unexpected solver status: {self.solver.status}')
+
+    def save_results(self, solution: Solution):
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+        results = {
+            'name': self.formulation.instance.name,
+            'type': self.config.instance_type,
+            'id': self.formulation.instance.id,
+            'formulation': self.config.formulation,
+            'N': len(self.formulation.instance.N),
+            'K': len(self.formulation.instance.K),
+            'T_max': self.formulation.instance.T_max,
+            'C': len(self.formulation.instance.C),
+            'solve_time': self.solver.Runtime,
+            'status': self.solver.status,
+            'time_limit': self.config.time_limit,
+            'objective': self.solver.objVal,
+            'best_bound': self.solver.ObjBound,
+            'best_int': self.solver.ObjBoundC,
+            'Wp': solution.Wp,
+            'm': solution.m,
+            'gap': self.solver.MIPGap,
+            'n_vars': self.solver.NumVars,
+            'n_cons': self.solver.NumConstrs,
+            'n_nodes': self.solver.NodeCount,
+            'n_solutions': self.solver.SolCount,
+            'routes': solution.routes_to_string(),
+            'timestamp': timestamp,
+        }
+
+        try:
+            results_df = pd.read_csv(self.config.results_file)
+        except FileNotFoundError:
+            results_df = pd.DataFrame(columns=list(results.keys()))
+
+        results_df.loc[len(results_df)] = list(results.values())
+        results_df.to_csv(self.config.results_file, index=False)
 
     def infeasibility_analysis(self):
         self.solver.computeIIS()
