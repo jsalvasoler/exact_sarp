@@ -5,9 +5,11 @@ import gurobipy as gp
 
 
 class Instance:
-    def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None, full_name=None):
+    def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None, full_name=None,
+                 optimal_value=None):
         self.name = None if full_name is None else full_name[3:-4]
         self.id = None if full_name is None else full_name[:2]
+        self.optimal_value = optimal_value
 
         if seed is not None:
             random.seed(seed)
@@ -45,6 +47,14 @@ class Instance:
         print(f'K = {len(self.K)} (vehicles)')
         print(f'T_max = {self.T_max} (max time)')
         print(f'C = {len(self.C)} (characteristics)\n')
+
+    def validate_objective(self, obj: float):
+        if self.optimal_value is None:
+            print(f'Optimal value is not known, cannot validate given objective.')
+        else:
+            assert abs(obj - self.optimal_value) < 1e-6, \
+                f'Optimal value is {self.optimal_value}, but got {obj}.'
+            print(f'Objective value validated to be optimal.')
 
 
 class Formulation(ABC):

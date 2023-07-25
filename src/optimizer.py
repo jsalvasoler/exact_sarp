@@ -19,6 +19,8 @@ class Optimizer:
         print(f'Status: {self.solver.status}')
 
         if self.solver.status in [gp.GRB.OPTIMAL, gp.GRB.TIME_LIMIT, gp.GRB.ITERATION_LIMIT, gp.GRB.NODE_LIMIT]:
+            if self.solver.status == gp.GRB.OPTIMAL:
+                self.formulation.instance.validate_objective(self.solver.objVal)
             solution = self.formulation.build_solution()
             if self.config.print_solution:
                 solution.print(self.config.print_solution)
@@ -59,12 +61,12 @@ class Optimizer:
         }
 
         try:
-            results_df = pd.read_csv(self.config.results_file)
+            results_df = pd.read_csv(self.config.results_file, sep=';', decimal='.')
         except FileNotFoundError:
             results_df = pd.DataFrame(columns=list(results.keys()))
 
         results_df.loc[len(results_df)] = list(results.values())
-        results_df.to_csv(self.config.results_file, index=False)
+        results_df.to_csv(self.config.results_file, index=False, sep=';', decimal='.')
 
     def infeasibility_analysis(self):
         self.solver.computeIIS()

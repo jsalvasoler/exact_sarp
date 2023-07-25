@@ -50,3 +50,7 @@ class Config:
     @property
     def results_file(self):
         return os.path.join(self.__root, 'results', 'results.csv')
+
+    @property
+    def optimal_solutions_file(self):
+        return os.path.join(self.__root, 'data', 'optimal_solutions.txt')

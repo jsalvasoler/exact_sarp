@@ -10,6 +10,19 @@ class InstanceLoader:
         self.__config = config
         self.__instance_dir = os.path.join(self.__config.data_dir, self.__config.instance_type)
 
+        self.__optimal_solutions = self.read_optimal_solutions()
+
+    def read_optimal_solutions(self):
+        with open(self.__config.optimal_solutions_file, 'r') as f:
+            lines = f.readlines()
+            optimal_solutions = {}
+            for line in lines:
+                name, inst_id, value = line.replace('\n', '').split(' ')
+                value = float(value.replace(',', '.'))
+                optimal_solutions[name] = value
+                optimal_solutions[inst_id] = value
+        return optimal_solutions
+
     def load_instances(self) -> Dict[str, Instance]:
         # List all instances in the directory
         instance_names = os.listdir(self.__instance_dir)
@@ -56,4 +69,5 @@ class InstanceLoader:
                 for i in range(N_size)
             }
 
-            return Instance(N_size, K_size, T_max, C_size, t, alpha, full_name=instance_file)
+            return Instance(N_size, K_size, T_max, C_size, t, alpha, full_name=instance_file,
+                            optimal_value=self.__optimal_solutions.get(instance_file[3:-4], None))
