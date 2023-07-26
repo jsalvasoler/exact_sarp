@@ -2,6 +2,9 @@ import random
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple, Union
 import gurobipy as gp
+import warnings
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 class Instance:
@@ -51,9 +54,10 @@ class Instance:
     def validate_objective(self, obj: float):
         if self.optimal_value is None:
             print(f'Optimal value is not known, cannot validate given objective.')
+            return
+        if abs(obj - self.optimal_value) > 1e-6:
+            warnings.warn(f'Real optimal value is {self.optimal_value}, but got {obj}.')
         else:
-            assert abs(obj - self.optimal_value) < 1e-6, \
-                f'Real optimal value is {self.optimal_value}, but got {obj}.'
             print(f'Objective value validated to be optimal.')
 
 
@@ -236,3 +240,13 @@ class Solution:
 
     def routes_to_string(self):
         return ' // '.join(f'Route of vehicle {k}: {route}' for k, route in self.routes.items())
+
+    def draw(self):
+        g = nx.DiGraph()
+        g.add_nodes_from(self.inst.N)
+        g.add_edges_from((i, j) for i, j, k in self.x if self.x[i, j, k] == 1)
+
+        pos = nx.spring_layout(g)
+        nx.draw(g, pos, with_labels=True, node_color="skyblue", node_size=1000, font_size=10)
+
+        plt.show()

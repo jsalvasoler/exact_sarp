@@ -24,8 +24,10 @@ class Optimizer:
             solution = self.formulation.build_solution()
             if self.config.print_solution:
                 solution.print(self.config.print_solution)
+            if self.config.draw_solution:
+                solution.draw()
             self.save_results(solution)
-        elif self.solver.status == gp.GRB.INFEASIBLE:
+        elif self.solver.status in [gp.GRB.INFEASIBLE, gp.GRB.INF_OR_UNBD]:
             self.infeasibility_analysis()
             return
         else:
@@ -79,4 +81,3 @@ class Optimizer:
                 print(f'\t{v.varname} ≥ {v.LB}')
             if v.IISUB:
                 print(f'\t{v.varname} ≤ {v.UB}')
-

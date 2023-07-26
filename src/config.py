@@ -32,6 +32,10 @@ class Config:
         return self.__config['solver']['print_solution']
 
     @property
+    def draw_solution(self):
+        return self.__config['solver']['draw_solution']
+
+    @property
     def instance_type(self):
         return self.__config['execution']['instance_type']
 
@@ -54,3 +58,7 @@ class Config:
     @property
     def optimal_solutions_file(self):
         return os.path.join(self.__root, 'data', 'optimal_solutions.txt')
+
+    @property
+    def seed(self):
+        return self.__config['execution']['seed']

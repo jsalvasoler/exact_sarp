@@ -36,6 +36,7 @@ class InstanceLoader:
 
         if self.__config.n_instances is not None:
             # Select randomly n_instances instances using random.sample
+            random.seed(self.__config.seed)
             instances = dict(random.sample(instances.items(), self.__config.n_instances))
 
         return instances
