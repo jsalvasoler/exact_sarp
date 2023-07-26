@@ -14,7 +14,7 @@ class Optimizer:
 
     def run(self):
         self.formulation.formulate()
-        self.solver.optimize()
+        self.solver.optimize(self.formulation.callback)
         print(f'Solve time: {self.solver.Runtime} seconds')
         print(f'Status: {self.solver.status}')
 

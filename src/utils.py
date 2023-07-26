@@ -53,7 +53,7 @@ class Instance:
             print(f'Optimal value is not known, cannot validate given objective.')
         else:
             assert abs(obj - self.optimal_value) < 1e-6, \
-                f'Optimal value is {self.optimal_value}, but got {obj}.'
+                f'Real optimal value is {self.optimal_value}, but got {obj}.'
             print(f'Objective value validated to be optimal.')
 
 
@@ -63,6 +63,7 @@ class Formulation(ABC):
         self.activations = activations
         self.solver = gp.Model()
         self.constraints = {}
+        self.callback = None
 
     @abstractmethod
     def define_variables(self):

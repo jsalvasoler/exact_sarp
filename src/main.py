@@ -1,6 +1,7 @@
 from src.formulations.mtz_formulation import MTZFormulation
 from optimizer import Optimizer
 from src.config import Config
+from src.formulations.cutset_formulation import CutSetFormulation
 from utils import Instance
 from src.instance_loader import InstanceLoader
 from pyinstrument import Profiler
@@ -22,6 +23,7 @@ def main():
     instances = instance_loader.load_instances()
     formulations = {
         'mtz': MTZFormulation,
+        'sec': CutSetFormulation,
     }
     for i, (name, instance) in enumerate(instances.items()):
         print(f'\nInstance {i + 1}/{len(instances)}: \n  id = {name[:2]}, name = {name[3:-4]}\n\n')

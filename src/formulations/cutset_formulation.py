@@ -1,16 +1,41 @@
 import gurobipy as gp
+import networkx as nx
 
 from src.utils import Formulation, Instance, Solution
 
 
 # noinspection DuplicatedCode
-class MTZFormulation(Formulation):
+class CutSetFormulation(Formulation):
+
+    def fill_constraints(self):
+        # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
+        prefix = 'constraint_'
+        constraint_names = [method_name[len(prefix):] for method_name in dir(self) if method_name.startswith(prefix)]
+
+        for constraint_name in constraint_names:
+            self.constraints[constraint_name] = getattr(self, f'{prefix}{constraint_name}')
+
+    def define_objective(self):
+        self.solver.setObjective(self.z, gp.GRB.MAXIMIZE)
+
+    def build_solution(self) -> Solution:
+        x = {
+            (i, j, k): 1 if self.x[i, j, k].X > 0.5 else 0
+            for i in self.instance.N_0
+            for j in self.instance.N_0
+            for k in self.instance.K
+        }
+        return Solution(self.instance, x, self.solver.objVal)
+
     def __init__(self, inst: Instance, activations: dict = None):
         super().__init__(inst, activations)
         self.x = {}
         self.y = {}
-        self.u = {}
         self.z = None
+
+        self.callback = cutset_constraints
+        self.solver._num_lazy_constraints_added = 0
+        self.solver.Params.lazyConstraints = 1
 
     def define_variables(self):
         for i in self.instance.N_0:
@@ -20,10 +45,11 @@ class MTZFormulation(Formulation):
             for j in self.instance.N_0:
                 for k in self.instance.K:
                     self.x[i, j, k] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'x_{i}_{j}_{k}', lb=0, ub=1)
-        for i in self.instance.N:
-            self.u[i] = self.solver.addVar(vtype=gp.GRB.INTEGER, name=f'u_{i}', lb=0,
-                                           ub=len(self.instance.N) - 1)
         self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=gp.GRB.INFINITY)
+
+        self.solver._x = self.x
+        self.solver._y = self.y
+        self.solver._z = self.z
 
     def constraint_define_obj(self):
         for c in self.instance.C:
@@ -56,12 +82,6 @@ class MTZFormulation(Formulation):
                 name=f'visit_{i}'
             )
 
-    def constraint_number_of_vehicles(self):
-        self.solver.addConstr(
-            gp.quicksum(self.y[0, k] for k in self.instance.K) <= len(self.instance.K),
-            name='number_of_vehicles'
-        )
-
     def constraint_number_of_vehicles_hard(self):
         self.solver.addConstr(
             gp.quicksum(self.y[0, k] for k in self.instance.K) == len(self.instance.K),
@@ -83,17 +103,6 @@ class MTZFormulation(Formulation):
                 name=f'max_time_{k}'
             )
 
-    def constraint_mtz(self):
-        for i in self.instance.N:
-            for j in self.instance.N:
-                if i == j:
-                    continue
-                for k in self.instance.K:
-                    self.solver.addConstr(
-                        self.u[i] - self.u[j] + len(self.instance.N) * (self.x[i, j, k]) <= len(self.instance.N) - 1,
-                        name=f'mtz_{i}_{j}_{k}'
-                    )
-
     def constraint_not_stay(self):
         for i in self.instance.N:
             for k in self.instance.K:
@@ -102,34 +111,40 @@ class MTZFormulation(Formulation):
                     name=f'not_stay_{i}_{k}'
                 )
 
-    def constraint_already_visited(self):
-        for i in self.instance.N:
-            for k in self.instance.K:
-                for j in self.instance.N:
-                    for q in self.instance.K:
-                        if k == q or i == j:
-                            continue
-                        self.solver.addConstr(
-                            self.x[j, i, q] <= self.y[i, k],
-                            name=f'already_visited_{i}_{k}_{j}_{q}'
-                        )
 
-    def fill_constraints(self):
-        # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
-        prefix = 'constraint_'
-        constraint_names = [method_name[len(prefix):] for method_name in dir(self) if method_name.startswith(prefix)]
+def find_min_cut(x, y):
+    keys = list(x.keys())
+    K = set([k for _, _, k in keys])
+    N = set([i for i, _, _ in keys])
+    for k in K:
+        g = nx.DiGraph()
+        g.add_weighted_edges_from([(i, j, value) for (i, j, k_), value in x.items() if k_ == k])
+        for i in N - {0}:
+            flow = nx.maximum_flow_value(g, 0, i, capacity='weight')
+            if flow < y[i, k] - 0.0001:
+                val, partition = nx.minimum_cut(g, 0, i, capacity='weight')
+                outgoing_edges = [
+                    (i, j) for i, j in g.edges if i in partition[0] and j in partition[1]
+                ]
+                return outgoing_edges, i, k
+    return None, None, None
 
-        for constraint_name in constraint_names:
-            self.constraints[constraint_name] = getattr(self, f'{prefix}{constraint_name}')
 
-    def define_objective(self):
-        self.solver.setObjective(self.z, gp.GRB.MAXIMIZE)
+def cutset_constraints(model: gp.Model, where):
+    if where == gp.GRB.Callback.MIPSOL:
+        x = model.cbGetSolution(model._x)
+        y = model.cbGetSolution(model._y)
+    elif where == gp.GRB.Callback.MIPNODE and model.cbGet(gp.GRB.Callback.MIPNODE_STATUS) == gp.GRB.OPTIMAL:
+        x = model.cbGetNodeRel(model._x)
+        y = model.cbGetNodeRel(model._y)
+    else:
+        return
 
-    def build_solution(self) -> Solution:
-        x = {
-            (i, j, k): 1 if self.x[i, j, k].X > 0.5 else 0
-            for i in self.instance.N_0
-            for j in self.instance.N_0
-            for k in self.instance.K
-        }
-        return Solution(self.instance, x, self.solver.objVal)
+    outgoing_edges, node, k = find_min_cut(x, y)
+    if node:
+        model._num_lazy_constraints_added += 1
+        model.cbLazy(
+            gp.quicksum(
+                model._x[i, j, k] for i, j in outgoing_edges
+            ) >= model._y[node, k]
+        )
