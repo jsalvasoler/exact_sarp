@@ -111,9 +111,7 @@ def minimal_formulation_analysis(formulation_name: str) -> None:
     for i, a in enumerate(ans):
         print(f'Minimal set {i}\n{formulation_name}:')
         for c in all_constraints:
-            print(f'  {c}: {"true" if c in a else "false"}')
-
-
+            print(f'  {c}: {"true" if c in eval(a) else "false"}')
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ class MTZFormulation(Formulation):
                 for k in self.instance.K:
                     self.x[i, j, k] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'x_{i}_{j}_{k}', lb=0, ub=1)
         for i in self.instance.N:
-            self.u[i] = self.solver.addVar(vtype=gp.GRB.INTEGER, name=f'u_{i}', lb=0,
+            self.u[i] = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name=f'u_{i}', lb=0,
                                            ub=len(self.instance.N) - 1)
         self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
 

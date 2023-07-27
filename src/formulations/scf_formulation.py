@@ -12,7 +12,7 @@ class SCFFormulation(Formulation):
         self.z = None
 
     def define_variables(self):
-        for i in self.instance.N_0:
+        for i in self.instance.N:
             self.y[i] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'y_{i}', lb=0, ub=1)
         for i in self.instance.N_0:
             for j in self.instance.N_0:
@@ -37,10 +37,6 @@ class SCFFormulation(Formulation):
                     self.f[i, j] <= self.instance.T_max * self.x[i, j],
                     name=f'link_flow_and_edges_1_{i}_{j}'
                 )
-                # self.solver.addConstr(
-                #     self.x[i, j] <= 1e6 * self.f[i, j],
-                #     name=f'link_flow_and_edges_2_{i}_{j}'
-                # )
 
     def constraint_leave_depot_route(self):     # K routes must leave the depot (hard constraint)
         self.solver.addConstr(
