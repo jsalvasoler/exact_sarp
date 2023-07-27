@@ -62,3 +62,7 @@ class Config:
     @property
     def seed(self):
         return self.__config['execution']['seed']
+
+    @property
+    def exception_when_non_optimal(self):
+        return self.__config['execution']['exception_when_non_optimal']

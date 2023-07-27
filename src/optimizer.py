@@ -20,18 +20,20 @@ class Optimizer:
 
         if self.solver.status in [gp.GRB.OPTIMAL, gp.GRB.TIME_LIMIT, gp.GRB.ITERATION_LIMIT, gp.GRB.NODE_LIMIT]:
             if self.solver.status == gp.GRB.OPTIMAL:
-                self.formulation.instance.validate_objective(self.solver.objVal)
+                self.formulation.instance.validate_objective(self.solver.objVal, self.config.exception_when_non_optimal)
             solution = self.formulation.build_solution()
             if self.config.print_solution:
                 solution.print(self.config.print_solution)
             if self.config.draw_solution:
                 solution.draw()
             self.save_results(solution)
-        elif self.solver.status in [gp.GRB.INFEASIBLE, gp.GRB.INF_OR_UNBD]:
+        elif self.solver.status in [gp.GRB.INFEASIBLE]:
             self.infeasibility_analysis()
             return
+        elif self.solver.status in [gp.GRB.INF_OR_UNBD]:
+            return
         else:
-            raise Exception(f'Unexpected solver status: {self.solver.status}')
+            raise ValueError(f'Unexpected solver status: {self.solver.status}')
 
     def save_results(self, solution: Solution):
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')

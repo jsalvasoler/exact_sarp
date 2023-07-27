@@ -51,20 +51,23 @@ class Instance:
         print(f'T_max = {self.T_max} (max time)')
         print(f'C = {len(self.C)} (characteristics)\n')
 
-    def validate_objective(self, obj: float):
+    def validate_objective(self, obj: float, exception: bool = False):
         if self.optimal_value is None:
             print(f'Optimal value is not known, cannot validate given objective.')
             return
         if abs(obj - self.optimal_value) > 1e-6:
-            warnings.warn(f'Real optimal value is {self.optimal_value}, but got {obj}.')
+            if exception:
+                raise ValueError(f'Real optimal value is {self.optimal_value}, but got {obj}.')
+            else:
+                warnings.warn(f'Real optimal value is {self.optimal_value}, but got {obj}.')
         else:
             print(f'Objective value validated to be optimal.')
 
 
 class Formulation(ABC):
-    def __init__(self, instance: Instance, activations: Dict[str, bool]):
+    def __init__(self, instance: Instance, activations: Dict[str, bool] = None):
         self.instance = instance
-        self.activations = activations
+        self.activations = activations if activations is not None else {}
         self.solver = gp.Model()
         self.constraints = {}
         self.callback = None
@@ -106,9 +109,12 @@ class Formulation(ABC):
         """
         self.fill_constraints()
         assert not set(self.activations.keys()) - set(self.constraints.keys()), \
-            f'Some activations refer to non-existent constraints.'
+            f'Some activations refer to non-existent constraints: ' \
+            f'{set(self.activations.keys()) - set(self.constraints.keys())}.'
+        print(f'Constraints:')
         for constraint_name, active in self.constraints.items():
             if self.activations.get(constraint_name, True):
+                print(f' - {constraint_name}')
                 self.constraints[constraint_name]()
 
     def formulate(self):

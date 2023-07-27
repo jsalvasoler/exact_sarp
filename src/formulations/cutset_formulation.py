@@ -45,7 +45,7 @@ class CutSetFormulation(Formulation):
             for j in self.instance.N_0:
                 for k in self.instance.K:
                     self.x[i, j, k] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'x_{i}_{j}_{k}', lb=0, ub=1)
-        self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=gp.GRB.INFINITY)
+        self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
 
         self.solver._x = self.x
         self.solver._y = self.y

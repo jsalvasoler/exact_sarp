@@ -23,7 +23,7 @@ class MTZFormulation(Formulation):
         for i in self.instance.N:
             self.u[i] = self.solver.addVar(vtype=gp.GRB.INTEGER, name=f'u_{i}', lb=0,
                                            ub=len(self.instance.N) - 1)
-        self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=gp.GRB.INFINITY)
+        self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
 
     def constraint_define_obj(self):
         for c in self.instance.C:
@@ -55,12 +55,6 @@ class MTZFormulation(Formulation):
                 gp.quicksum(self.y[i, k] for k in self.instance.K) <= 1,
                 name=f'visit_{i}'
             )
-
-    def constraint_number_of_vehicles(self):
-        self.solver.addConstr(
-            gp.quicksum(self.y[0, k] for k in self.instance.K) <= len(self.instance.K),
-            name='number_of_vehicles'
-        )
 
     def constraint_number_of_vehicles_hard(self):
         self.solver.addConstr(
@@ -101,18 +95,6 @@ class MTZFormulation(Formulation):
                     self.x[i, i, k] == 0,
                     name=f'not_stay_{i}_{k}'
                 )
-
-    def constraint_already_visited(self):
-        for i in self.instance.N:
-            for k in self.instance.K:
-                for j in self.instance.N:
-                    for q in self.instance.K:
-                        if k == q or i == j:
-                            continue
-                        self.solver.addConstr(
-                            self.x[j, i, q] <= self.y[i, k],
-                            name=f'already_visited_{i}_{k}_{j}_{q}'
-                        )
 
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'

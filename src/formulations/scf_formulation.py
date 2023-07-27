@@ -20,7 +20,7 @@ class SCFFormulation(Formulation):
                     vtype=gp.GRB.CONTINUOUS, name=f'f_{i}_{j}', lb=0, ub=self.instance.T_max)
                 self.x[i, j] = self.solver.addVar(
                     vtype=gp.GRB.BINARY, name=f'x_{i}_{j}', lb=0, ub=1)
-        self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=gp.GRB.INFINITY)
+        self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
 
     def constraint_define_obj(self):
         for c in self.instance.C:
