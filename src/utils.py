@@ -1,6 +1,6 @@
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional, List
 import gurobipy as gp
 import warnings
 import networkx as nx
@@ -156,16 +156,23 @@ class Solution:
             f'calculated using the solution ({calculated_obj}).'
         self.obj = calculated_obj
 
-    def calculate_routes(self):
+    def calculate_routes(self) -> Dict[int, Tuple[List[int], float]]:
         """
-        Calculate the routes of the solution.
+        Calculate the routes of the solution, and its duration.
         """
         routes = {}
         for k in self.inst.K:
-            routes[k] = self.find_route(k)
+            route = self.find_route(k)
+            routes[k] = (route, self.find_duration(route))
         return routes
 
-    def calculate_coverage_ratios(self):
+    def find_duration(self, route) -> float:
+        """
+        Find the length of the route.
+        """
+        return sum(self.inst.t[i, j] for i, j in zip(route[:-1], route[1:]))
+
+    def calculate_coverage_ratios(self) -> Dict[str, float]:
         """
         Calculate the coverage ratios of the solution.
         """
@@ -174,7 +181,7 @@ class Solution:
             for c in self.inst.C
         }
 
-    def calculate_y(self):
+    def calculate_y(self) -> Dict[Tuple[int, int], int]:
         """
         Calculate the number of times each site is visited.
         """
@@ -184,7 +191,7 @@ class Solution:
             for k in self.inst.K
         }
 
-    def calculate_Wp(self):
+    def calculate_Wp(self) -> float:
         """
         Calculate the duration of the routes.
         """
@@ -195,7 +202,7 @@ class Solution:
             for k in self.inst.K
         )
 
-    def calculate_m(self):
+    def calculate_m(self) -> int:
         """
         Calculate the number of nodes visited.
         """
@@ -205,7 +212,13 @@ class Solution:
             for k in self.inst.K
         )
 
-    def print(self, verbose):
+    def print(self, verbose: int = 1) -> None:
+        """
+        Print the solution. If verbose = 2, print the coverage ratios of the solution.
+
+        Args:
+            verbose: if 1, print the solution. If 2, print the solution and the coverage ratios.
+        """
         print(f"{'-' * 30}")
         print(f"{'-' * 10} Solution {'-' * 10}")
         print(f"{'-' * 30}")
@@ -214,8 +227,8 @@ class Solution:
         print()
 
         print(' --Routes:')
-        for k, route in self.routes.items():
-            print(f'Route of vehicle {k}: {route}')
+        for k, (route, time) in self.routes.items():
+            print(f'Route of vehicle {k}: {route} -> {round(time, 1)} time units')
         if verbose == 2:
             print(' --Coverage ratios:')
             for c in self.inst.C:
@@ -230,7 +243,16 @@ class Solution:
         print(f"{'-' * 30}")
         print(f"{'-' * 30}")
 
-    def find_route(self, k):
+    def find_route(self, k) -> List[int]:
+        """
+        Find the route of vehicle k.
+
+        Args:
+            k: vehicle index
+
+        Returns:
+            Route of vehicle k.
+        """
         route = [0]
         while True:
             j = self.find_next(route[-1], k, route)
@@ -238,16 +260,33 @@ class Solution:
                 return route + [0]
             route.append(j)
 
-    def find_next(self, i, k, route):
+    def find_next(self, i: int, k: int, route: List[int]) -> Optional[int]:
+        """
+        Find the next node in the route.
+
+        Args:
+            i: current node
+            k: vehicle index
+            route: current route
+
+        Returns:
+            Next node in the route. If there is no next node (i.e. the route is complete), return None.
+        """
         for j in self.inst.N_0:
             if self.x[i, j, k] == 1 and j not in route:
                 return j
         return None
 
-    def routes_to_string(self):
+    def routes_to_string(self) -> str:
+        """
+        Return a string representation of the routes.
+        """
         return ' // '.join(f'Route of vehicle {k}: {route}' for k, route in self.routes.items())
 
     def draw(self):
+        """
+        Draw the solution using networkx.
+        """
         g = nx.DiGraph()
         g.add_nodes_from(self.inst.N)
         g.add_edges_from((i, j) for i, j, k in self.x if self.x[i, j, k] == 1)

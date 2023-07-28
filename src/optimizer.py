@@ -3,6 +3,7 @@ from utils import Formulation, Solution
 import gurobipy as gp
 import pandas as pd
 from datetime import datetime
+import warnings
 
 
 class Optimizer:
@@ -73,6 +74,7 @@ class Optimizer:
         results_df.to_csv(self.config.results_file, index=False, sep=';', decimal='.')
 
     def infeasibility_analysis(self):
+        warnings.warn('Model is infeasible. Performing infeasibility analysis.')
         self.solver.computeIIS()
         for c in self.solver.getConstrs():
             if c.IISConstr:
