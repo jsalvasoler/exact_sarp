@@ -13,7 +13,7 @@ class MTZOptFormulation(Formulation):
         self.z = None
 
     def define_variables(self):
-        for i in self.instance.N_0:
+        for i in self.instance.N:
             self.y[i] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'y_{i}', lb=0, ub=1)
         for i in self.instance.N_0:
             for j in self.instance.N_0:
