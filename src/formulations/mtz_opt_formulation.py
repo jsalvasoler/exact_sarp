@@ -75,6 +75,13 @@ class MTZOptFormulation(Formulation):
                 name=f'not_stay_{i}'
             )
 
+    def constraint_arrival_time(self):
+        for i in self.instance.N:
+            self.solver.addConstr(
+                self.u[0] >= self.u[i],
+                name=f'arrival_time_{i}'
+            )
+
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
         prefix = 'constraint_'
