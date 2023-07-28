@@ -6,6 +6,11 @@ import warnings
 import networkx as nx
 import matplotlib.pyplot as plt
 
+from src.formulations.cutset_formulation import CutSetFormulation
+from src.formulations.mtz_formulation import MTZFormulation
+from src.formulations.mtz_opt_formulation import MTZOptFormulation
+from src.formulations.scf_formulation import SCFFormulation
+
 
 class Instance:
     def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None, full_name=None,
@@ -295,3 +300,11 @@ class Solution:
         nx.draw(g, pos, with_labels=True, node_color="skyblue", node_size=1000, font_size=10)
 
         plt.show()
+
+
+formulations = {
+    'mtz': MTZFormulation,
+    'cutset': CutSetFormulation,
+    'scf': SCFFormulation,
+    'mtz_opt': MTZOptFormulation,
+}

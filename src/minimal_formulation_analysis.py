@@ -1,22 +1,11 @@
 from functools import cache
 from pyinstrument import Profiler
 
-from src.formulations.cutset_formulation import CutSetFormulation
-from src.formulations.mtz_formulation import MTZFormulation
-from src.formulations.scf_formulation import SCFFormulation
 from src.instance_loader import InstanceLoader
 from src.config import Config
 from src.optimizer import Optimizer
-
+from src.utils import formulations
 from typing import Dict, Set, List
-
-from src.utils import Instance
-
-formulations = {
-    'mtz': MTZFormulation,
-    'cutset': CutSetFormulation,
-    'scf': SCFFormulation,
-}
 
 
 def minimal_formulation_analysis(formulation_name: str) -> None:

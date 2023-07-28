@@ -1,18 +1,9 @@
-from src.formulations.mtz_formulation import MTZFormulation
-from src.formulations.cutset_formulation import CutSetFormulation
-from src.formulations.mtz_opt_formulation import MTZOptFormulation
-from src.formulations.scf_formulation import SCFFormulation
 from optimizer import Optimizer
 from src.config import Config
 from src.instance_loader import InstanceLoader
 from pyinstrument import Profiler
 
-formulations = {
-    'mtz': MTZFormulation,
-    'cutset': CutSetFormulation,
-    'scf': SCFFormulation,
-    'mtz_opt': MTZOptFormulation,
-}
+from src.utils import formulations
 
 
 def main():
