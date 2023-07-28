@@ -6,6 +6,15 @@ from src.utils import Formulation, Instance, Solution
 
 # noinspection DuplicatedCode
 class CutSetFormulation(Formulation):
+    def __init__(self, inst: Instance, activations: dict = None):
+        super().__init__(inst, activations)
+        self.x = {}
+        self.y = {}
+        self.z = None
+
+        self.callback = cutset_constraints
+        self.solver._num_lazy_constraints_added = 0
+        self.solver.Params.lazyConstraints = 1
 
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
@@ -26,16 +35,6 @@ class CutSetFormulation(Formulation):
             for k in self.instance.K
         }
         return Solution(self.instance, x, self.solver.objVal)
-
-    def __init__(self, inst: Instance, activations: dict = None):
-        super().__init__(inst, activations)
-        self.x = {}
-        self.y = {}
-        self.z = None
-
-        self.callback = cutset_constraints
-        self.solver._num_lazy_constraints_added = 0
-        self.solver.Params.lazyConstraints = 1
 
     def define_variables(self):
         for i in self.instance.N_0:
