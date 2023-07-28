@@ -4,7 +4,7 @@ from pyinstrument import Profiler
 from src.instance_loader import InstanceLoader
 from src.config import Config
 from src.optimizer import Optimizer
-from src.utils import formulations
+from src.main import formulations
 from typing import Dict, Set, List
 
 

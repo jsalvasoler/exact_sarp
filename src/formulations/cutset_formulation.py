@@ -12,7 +12,7 @@ class CutSetFormulation(Formulation):
         self.y = {}
         self.z = None
 
-        self.callback = cutset_constraints
+        self.callback = create_callback(activations)
         self.solver._num_lazy_constraints_added = 0
         self.solver.Params.lazyConstraints = 1
 
@@ -129,16 +129,26 @@ def find_min_cut(x, y):
     return None, None, None
 
 
-def cutset_constraints(model: gp.Model, where):
-    if where == gp.GRB.Callback.MIPSOL:
-        x = model.cbGetSolution(model._x)
-        y = model.cbGetSolution(model._y)
-    elif where == gp.GRB.Callback.MIPNODE and model.cbGet(gp.GRB.Callback.MIPNODE_STATUS) == gp.GRB.OPTIMAL:
-        x = model.cbGetNodeRel(model._x)
-        y = model.cbGetNodeRel(model._y)
-    else:
-        return
+def add_cutset_constraint(activations: dict, model: gp.Model, where):
+    if activations['cutset_integer']:
+        if where == gp.GRB.Callback.MIPSOL:
+            x = model.cbGetSolution(model._x)
+            y = model.cbGetSolution(model._y)
+            add_cut_to_formulation(model, x, y)
+    if activations['cutset_relaxation']:
+        if where == gp.GRB.Callback.MIPNODE and model.cbGet(gp.GRB.Callback.MIPNODE_STATUS) == gp.GRB.OPTIMAL:
+            x = model.cbGetNodeRel(model._x)
+            y = model.cbGetNodeRel(model._y)
+            add_cut_to_formulation(model, x, y)
 
+
+def create_callback(activations: dict):
+    def partial_func(model, where):
+        add_cutset_constraint(activations, model, where)
+    return partial_func
+
+
+def add_cut_to_formulation(model: gp.Model, x, y):
     outgoing_edges, node, k = find_min_cut(x, y)
     if node:
         model._num_lazy_constraints_added += 1

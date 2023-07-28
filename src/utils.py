@@ -1,15 +1,10 @@
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, Union, Optional, List
+from typing import Dict, Tuple, Optional, List
 import gurobipy as gp
 import warnings
 import networkx as nx
 import matplotlib.pyplot as plt
-
-from src.formulations.cutset_formulation import CutSetFormulation
-from src.formulations.mtz_formulation import MTZFormulation
-from src.formulations.mtz_opt_formulation import MTZOptFormulation
-from src.formulations.scf_formulation import SCFFormulation
 
 
 class Instance:
@@ -113,7 +108,7 @@ class Formulation(ABC):
         Define the constraints of the formulation according to the activation dictionary.
         """
         self.fill_constraints()
-        assert not set(self.activations.keys()) - set(self.constraints.keys()), \
+        assert not set(c for c in self.activations.keys() if 'cutset' not in c) - set(self.constraints.keys()), \
             f'Some activations refer to non-existent constraints: ' \
             f'{set(self.activations.keys()) - set(self.constraints.keys())}.'
         print(f'Constraints:')
@@ -302,9 +297,3 @@ class Solution:
         plt.show()
 
 
-formulations = {
-    'mtz': MTZFormulation,
-    'cutset': CutSetFormulation,
-    'scf': SCFFormulation,
-    'mtz_opt': MTZOptFormulation,
-}
