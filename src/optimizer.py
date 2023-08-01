@@ -39,7 +39,6 @@ class Optimizer:
 
     def save_results(self, solution: Solution):
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-
         results = {
             'name': self.formulation.instance.name,
             'type': self.config.instance_type,
@@ -50,6 +49,7 @@ class Optimizer:
             'T_max': self.formulation.instance.T_max,
             'C': len(self.formulation.instance.C),
             'network_type': self.formulation.instance.network_type,
+            'm_solution': solution.m,
             'solve_time': self.solver.Runtime,
             'status': self.solver.status,
             'time_limit': self.config.time_limit,
@@ -58,7 +58,6 @@ class Optimizer:
             'best_int': self.solver.ObjBoundC,
             'mip_gap': self.solver.MIPGap,
             'Wp': solution.Wp,
-            'm_solution': solution.m,
             'gap': self.solver.MIPGap,
             'n_vars': self.solver.NumVars,
             'n_cons': self.solver.NumConstrs,
