@@ -53,7 +53,7 @@ def big_experiment():
                      for formulation_name in formulations.keys()
                  } - set(map(tuple, solved))
 
-    print(f'Already solved {len(solved)} / 384 instances\n')
+    print(f'Already solved {len(solved)} / 384 problems\n')
     instance_loader = InstanceLoader(config)
     instances = instance_loader.load_instances()
 
