@@ -20,8 +20,9 @@ class Optimizer:
         print(f'Status: {self.solver.status}')
 
         if self.solver.status in [gp.GRB.OPTIMAL, gp.GRB.TIME_LIMIT, gp.GRB.ITERATION_LIMIT, gp.GRB.NODE_LIMIT]:
-            if self.solver.status == gp.GRB.OPTIMAL:
-                self.formulation.instance.validate_objective(self.solver.objVal, self.config.exception_when_non_optimal)
+            if self.solver.status == gp.GRB.OPTIMAL and self.config.instance_type == 'small':
+                self.formulation.instance.validate_objective_for_small_instances(
+                    self.solver.objVal, self.config.exception_when_non_optimal)
             solution = self.formulation.build_solution()
             if self.config.print_solution:
                 solution.print(self.config.print_solution)
@@ -48,30 +49,34 @@ class Optimizer:
             'K': len(self.formulation.instance.K),
             'T_max': self.formulation.instance.T_max,
             'C': len(self.formulation.instance.C),
+            'network_type': self.formulation.instance.network_type,
             'solve_time': self.solver.Runtime,
             'status': self.solver.status,
             'time_limit': self.config.time_limit,
             'objective': self.solver.objVal,
             'best_bound': self.solver.ObjBound,
             'best_int': self.solver.ObjBoundC,
+            'mip_gap': self.solver.MIPGap,
             'Wp': solution.Wp,
             'm': solution.m,
             'gap': self.solver.MIPGap,
             'n_vars': self.solver.NumVars,
             'n_cons': self.solver.NumConstrs,
             'n_nodes': self.solver.NodeCount,
+            'n_added_cuts': self.solver._num_lazy_constraints_added,
             'n_solutions': self.solver.SolCount,
             'routes': solution.routes_to_string(),
             'timestamp': timestamp,
         }
+        results = {**results, **self.formulation.instance.instance_results}
 
         try:
-            results_df = pd.read_csv(self.config.results_file, sep=';', decimal='.')
+            results_df = pd.read_csv(self.config.results_file, sep=';', decimal=',')
         except FileNotFoundError:
             results_df = pd.DataFrame(columns=list(results.keys()))
 
         results_df.loc[len(results_df)] = list(results.values())
-        results_df.to_csv(self.config.results_file, index=False, sep=';', decimal='.')
+        results_df.to_csv(self.config.results_file, index=False, sep=';', decimal=',')
 
     def infeasibility_analysis(self):
         warnings.warn('Model is infeasible. Performing infeasibility analysis.')

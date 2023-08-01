@@ -9,10 +9,13 @@ import matplotlib.pyplot as plt
 
 class Instance:
     def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None, full_name=None,
-                 optimal_value=None):
+                 instance_results: dict = None):
         self.name = None if full_name is None else full_name[3:-4]
         self.id = None if full_name is None else full_name[:2]
-        self.optimal_value = optimal_value
+        self.network_type = 'RC' if 'RC' in full_name else 'R'
+        self.instance_results = instance_results
+
+        assert int(self.id) <= 48 or 75 <= T_max <= 250, f'Instance {self.id} has invalid T_max = {T_max}.'
 
         if seed is not None:
             random.seed(seed)
@@ -51,15 +54,24 @@ class Instance:
         print(f'T_max = {self.T_max} (max time)')
         print(f'C = {len(self.C)} (characteristics)\n')
 
-    def validate_objective(self, obj: float, exception: bool = False):
-        if self.optimal_value is None:
+    def validate_objective_for_small_instances(self, obj: float, exception: bool = False):
+        """
+        Validate the objective value of the given instance. If it's a small instance, the optimal is known and the
+        objective value is compared to it.
+
+        Args:
+            obj: objective value to validate.
+            exception: if True, raise an exception if the objective value is not optimal. Otherwise, print a warning.
+        """
+        known_optimal = self.instance_results['optimal_value']
+        if known_optimal is None:
             print(f'Optimal value is not known, cannot validate given objective.')
             return
-        if abs(obj - self.optimal_value) > 1e-6:
+        if abs(obj - known_optimal) > 1e-6:
             if exception:
-                raise ValueError(f'Real optimal value is {self.optimal_value}, but got {obj}.')
+                raise ValueError(f'Real optimal value is {known_optimal}, but got {obj}.')
             else:
-                warnings.warn(f'Real optimal value is {self.optimal_value}, but got {obj}.')
+                warnings.warn(f'Real optimal value is {known_optimal}, but got {obj}.')
         else:
             print(f'Objective value validated to be optimal.')
 
@@ -69,6 +81,7 @@ class Formulation(ABC):
         self.instance = instance
         self.activations = activations if activations is not None else {}
         self.solver = gp.Model()
+        self.solver._num_lazy_constraints_added = 0
         self.constraints = {}
         self.callback = None
 

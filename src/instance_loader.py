@@ -1,5 +1,6 @@
 import os
 import random
+import pandas as pd
 from typing import List, Dict
 from src.config import Config
 from src.utils import Instance
@@ -10,9 +11,10 @@ class InstanceLoader:
         self.__config = config
         self.__instance_dir = os.path.join(self.__config.data_dir, self.__config.instance_type)
 
-        self.__optimal_solutions = self.read_optimal_solutions()
+        self.__optimal_solutions_small = self.read_optimal_solutions_small()
+        self.__original_results_large = self.read_original_results_large()
 
-    def read_optimal_solutions(self):
+    def read_optimal_solutions_small(self):
         with open(self.__config.optimal_solutions_file, 'r') as f:
             lines = f.readlines()
             optimal_solutions = {}
@@ -22,6 +24,9 @@ class InstanceLoader:
                 optimal_solutions[name] = value
                 optimal_solutions[inst_id] = value
         return optimal_solutions
+
+    def read_original_results_large(self):
+        return pd.read_csv(self.__config.original_results_file, sep=';', decimal=',')
 
     def load_instances(self) -> Dict[str, Instance]:
         # List all instances in the directory
@@ -55,20 +60,44 @@ class InstanceLoader:
             node_info = [tuple(map(int, line.split())) for line in lines[5:5 + N_size + 1]]
             coordinates = {i: (x[0], x[1]) for i, x in enumerate(node_info)}
 
-            def euclidean_dist(i, j):
-                return ((coordinates[i][0] - coordinates[j][0]) ** 2 +
-                        (coordinates[i][1] - coordinates[j][1]) ** 2) ** 0.5
+        def euclidean_dist(i, j):
+            return ((coordinates[i][0] - coordinates[j][0]) ** 2 +
+                    (coordinates[i][1] - coordinates[j][1]) ** 2) ** 0.5
 
-            t = {(i, j): euclidean_dist(i, j) / factor
-                 for i in coordinates.keys()
-                 for j in coordinates.keys()
-                 }
+        t = {(i, j): euclidean_dist(i, j) / factor
+             for i in coordinates.keys()
+             for j in coordinates.keys()
+             }
 
-            alpha = {
-                (i + 1, c + 1): node_info[i + 1][2 + c]
-                for c in range(C_size)
-                for i in range(N_size)
+        alpha = {
+            (i + 1, c + 1): node_info[i + 1][2 + c]
+            for c in range(C_size)
+            for i in range(N_size)
+        }
+
+        if self.__config.instance_type == 'small':
+            instance_results = {
+                'optimal_value': self.__optimal_solutions_small.get(
+                    instance_file[3:-4], KeyError('Instance not found in optimal solutions'))
             }
+        elif self.__config.instance_type == 'large':
+            instance_results = self.get_instance_results_for_large(instance_file, N_size, K_size, T_max)
+        else:
+            raise NotImplementedError('Case study is not implemented yet')
 
-            return Instance(N_size, K_size, T_max, C_size, t, alpha, full_name=instance_file,
-                            optimal_value=self.__optimal_solutions.get(instance_file[3:-4], None))
+        return Instance(N_size, K_size, T_max, C_size, t, alpha, full_name=instance_file,
+                        instance_results=instance_results)
+
+    def get_instance_results_for_large(self, instance_file, N_size, K_size, T_max):
+        network_type = 'RC' if 'RC' in instance_file else 'R'
+        fields = ['Z_TS', 'm', 'W_TS', 'CPU_sec', 'Z_CP', 'opt_gap', 'ts_vs_cp_gap', 'ts_vs_gh_gap']
+        df_row = self.__original_results_large.loc[
+            (self.__original_results_large['network_type'] == network_type) &
+            (self.__original_results_large['nodes'] == N_size) &
+            (self.__original_results_large['T_max'] == T_max) &
+            (self.__original_results_large['K_size'] == K_size),
+            fields]
+        assert len(df_row) == 1, 'Error in extracting instance results'
+
+        # Convert to dict and return
+        return df_row.to_dict(orient='records')[0]

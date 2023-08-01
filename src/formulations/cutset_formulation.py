@@ -13,7 +13,6 @@ class CutSetFormulation(Formulation):
         self.z = None
 
         self.callback = create_callback(activations)
-        self.solver._num_lazy_constraints_added = 0
         self.solver.Params.lazyConstraints = 1
 
     def fill_constraints(self):
