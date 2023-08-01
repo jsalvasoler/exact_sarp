@@ -58,7 +58,7 @@ class Optimizer:
             'best_int': self.solver.ObjBoundC,
             'mip_gap': self.solver.MIPGap,
             'Wp': solution.Wp,
-            'm': solution.m,
+            'm_solution': solution.m,
             'gap': self.solver.MIPGap,
             'n_vars': self.solver.NumVars,
             'n_cons': self.solver.NumConstrs,
@@ -76,7 +76,11 @@ class Optimizer:
             results_df = pd.DataFrame(columns=list(results.keys()))
 
         results_df.loc[len(results_df)] = list(results.values())
-        results_df.to_csv(self.config.results_file, index=False, sep=';', decimal=',')
+        try:
+            results_df.to_csv(self.config.results_file, index=False, sep=';', decimal=',')
+        except PermissionError:
+            warnings.warn('Could not save results. Saving it with a timestamp.')
+            results_df.to_csv(f'results_{timestamp}.csv', index=False, sep=';', decimal=',')
 
     def infeasibility_analysis(self):
         warnings.warn('Model is infeasible. Performing infeasibility analysis.')
@@ -87,6 +91,6 @@ class Optimizer:
 
         for v in self.solver.getVars():
             if v.IISLB:
-                print(f'\t{v.varname} ≥ {v.LB}')
+                print(f'\t{v.varname} >= {v.LB}')
             if v.IISUB:
-                print(f'\t{v.varname} ≤ {v.UB}')
+                print(f'\t{v.varname} =< {v.UB}')

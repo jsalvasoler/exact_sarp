@@ -220,9 +220,9 @@ class Solution:
         Calculate the number of nodes visited.
         """
         return sum(
-            self.x[0, j, k]
-            for j in self.inst.N_0
+            self.y[i, k]
             for k in self.inst.K
+            for i in self.inst.N
         )
 
     def print(self, verbose: int = 1) -> None:
