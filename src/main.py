@@ -5,8 +5,9 @@ from src.formulations.mtz_formulation import MTZFormulation
 from src.formulations.mtz_opt_formulation import MTZOptFormulation
 from src.formulations.scf_formulation import SCFFormulation
 from src.instance_loader import InstanceLoader
-from pyinstrument import Profiler
 
+import pandas as pd
+from pyinstrument import Profiler
 
 formulations = {
     'mtz': MTZFormulation,
@@ -30,10 +31,47 @@ def main():
         optimizer.run()
 
 
-if __name__ == '__main__':
+def big_experiment():
+    config = Config()
+    assert config.n_instances_main is None and config.n_instances_big,\
+        'In big experiment, instance number is provided by n_instances_big'
+    assert config.instance_type == 'large', 'Big experiment is for large instances only'
+    assert config.time_limit == 60, 'Big experiment needs time_limit to be 60'
 
+    results = pd.read_csv(config.results_file, sep=';', decimal=',')
+
+    # Find instances + formulations that have already been solved
+    # That means either the solve_time is greater than the time_limit or the mip_gap is zero + tolerance
+    solved = results.loc[
+        (results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6)
+        , ['id', 'formulation']
+    ].values
+
+    to_execute = {
+                     (instance_id, formulation_name)
+                     for instance_id in range(1, 97)
+                     for formulation_name in formulations.keys()
+                 } - set(map(tuple, solved))
+
+    print(f'Already solved {len(solved)} / 384 instances\n')
+    instance_loader = InstanceLoader(config)
+    instances = instance_loader.load_instances()
+
+    for i, (instance_id, formulation_name) in enumerate(list(to_execute)[:config.n_instances_big]):
+        config.set_formulation(formulation_name)
+        instance = instances[instance_id]
+        print(f'\nInstance {i + 1}/{config.n_instances_big}: \n  '
+              f'id = {instance_id}, name = {instance.name}, formulation = {formulation_name}\n'
+              f'instance information: {instance.instance_results}\n\n')
+        formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
+        optimizer = Optimizer(formulation, config)
+        optimizer.run()
+
+
+if __name__ == '__main__':
     profiler = Profiler()
     profiler.start()
-    main()
+    # main()
+    big_experiment()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))

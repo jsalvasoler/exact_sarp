@@ -19,6 +19,9 @@ class Config:
             config = yaml.safe_load(f)
         return config
 
+    def set_formulation(self, formulation):
+        self.__config['formulation'] = formulation
+
     @property
     def time_limit(self):
         return self.__config['solver']['time_limit']
@@ -40,8 +43,12 @@ class Config:
         return self.__config['execution']['instance_type']
 
     @property
-    def n_instances(self):
-        return self.__config['execution']['n_instances']
+    def n_instances_main(self):
+        return self.__config['execution']['n_instances_main']
+
+    @property
+    def n_instances_big(self):
+        return self.__config['execution']['n_instances_big']
 
     @property
     def formulation(self):

@@ -11,11 +11,11 @@ class Instance:
     def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None, full_name=None,
                  instance_results: dict = None):
         self.name = None if full_name is None else full_name[3:-4]
-        self.id = None if full_name is None else full_name[:2]
+        self.id = None if full_name is None else int(full_name[:2])
         self.network_type = 'RC' if 'RC' in full_name else 'R'
         self.instance_results = instance_results
 
-        assert int(self.id) <= 48 or 75 <= T_max <= 250, f'Instance {self.id} has invalid T_max = {T_max}.'
+        assert self.id <= 48 or 75 <= T_max <= 250, f'Instance {self.id} has invalid T_max = {T_max}.'
 
         if seed is not None:
             random.seed(seed)

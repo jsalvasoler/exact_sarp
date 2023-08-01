@@ -38,11 +38,12 @@ class InstanceLoader:
         for i, instance_name in enumerate(instance_names):
             instance = self.__load_instance(instance_name)
             instances[str(instance_name)] = instance
+            instances[instance.id] = instance
 
-        if self.__config.n_instances is not None:
+        if self.__config.n_instances_main is not None:
             # Select randomly n_instances instances using random.sample
             random.seed(self.__config.seed)
-            instances = dict(random.sample(instances.items(), self.__config.n_instances))
+            instances = dict(random.sample(instances.items(), self.__config.n_instances_main))
 
         return instances
 

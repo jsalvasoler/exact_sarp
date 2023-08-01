@@ -18,7 +18,7 @@ def minimal_formulation_analysis(formulation_name: str) -> None:
         formulation_name: name of the formulation to analyze.
     """
 
-    assert not config.n_instances, f'Cannot run minimal_formulation_analysis with n_instances != None'
+    assert not config.n_instances_main, f'Cannot run minimal_formulation_analysis with n_instances != None'
     instance_loader = InstanceLoader(config)
     all_instances = instance_loader.load_instances()
     instance_names = ['small_R12hom_imp3_K3T2', 'small_R12hom_alt2_K2T2', 'small_RC12het_altimpinc3_K3T4',
