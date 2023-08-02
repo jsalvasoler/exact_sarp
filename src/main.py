@@ -43,17 +43,16 @@ def big_experiment():
     # Find instances + formulations that have already been solved
     # That means either the solve_time is greater than the time_limit or the mip_gap is zero + tolerance
     solved = results.loc[
-        (results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6)
-        , ['id', 'formulation']
-    ].values
+        (results['id'] < 49) & ((results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6))
+        , ['id', 'formulation']].values
 
     to_execute = {
                      (instance_id, formulation_name)
-                     for instance_id in range(1, 97)
+                     for instance_id in range(1, 49)
                      for formulation_name in formulations.keys()
                  } - set(map(tuple, solved))
 
-    print(f'Already solved {len(solved)} / 384 problems\n')
+    print(f'Already solved {len(solved)} / {4 * 48} problems\n')
     instance_loader = InstanceLoader(config)
     instances = instance_loader.load_instances()
 

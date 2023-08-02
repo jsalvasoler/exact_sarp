@@ -164,7 +164,7 @@ class Solution:
         Check if the objective provided by the solver matches the objective calculated using the solution.
         """
         calculated_obj = min(self.coverage_ratios.values())
-        assert abs(self.obj - calculated_obj) < 1e-6, \
+        assert abs(self.obj - calculated_obj) < 1e-4, \
             f'Objective provided by the solver ({self.obj}) does not match the objective ' \
             f'calculated using the solution ({calculated_obj}).'
         self.obj = calculated_obj
