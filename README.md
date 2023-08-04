@@ -1,4 +1,4 @@
-# Exact methodss for the SARP problem: Selective Assessmment Routing Problem
+# Exact methods for the SARP problem: Selective Assessmment Routing Problem
 
 This repository contains the implementation of the formulations and algorithms proposed in the research project **Exact methods for the SARP problem**. The following is the abstract of the project.
 
