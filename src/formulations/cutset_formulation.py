@@ -124,8 +124,7 @@ def find_min_cut(x, y):
                 outgoing_edges = [
                     (i, j) for i, j in g.edges if i in partition[0] and j in partition[1]
                 ]
-                return outgoing_edges, i, k
-    return None, None, None
+                yield outgoing_edges, i, k
 
 
 def add_cutset_constraint(activations: dict, model: gp.Model, where):
@@ -148,8 +147,8 @@ def create_callback(activations: dict):
 
 
 def add_cut_to_formulation(model: gp.Model, x, y):
-    outgoing_edges, node, k = find_min_cut(x, y)
-    if node:
+    gen = find_min_cut(x, y)
+    for outgoing_edges, node, k in gen:
         model._num_lazy_constraints_added += 1
         model.cbLazy(
             gp.quicksum(

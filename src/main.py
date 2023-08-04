@@ -11,7 +11,7 @@ from pyinstrument import Profiler
 
 formulations = {
     'mtz': MTZFormulation,
-    'cutset': CutSetFormulation,
+    # 'cutset': CutSetFormulation,
     'scf': SCFFormulation,
     'mtz_opt': MTZOptFormulation,
 }
@@ -33,7 +33,7 @@ def main():
 
 def big_experiment():
     config = Config()
-    assert config.n_instances_main is None and config.n_instances_big,\
+    assert config.n_instances_main is None and config.n_instances_big, \
         'In big experiment, instance number is provided by n_instances_big'
     assert config.instance_type == 'large', 'Big experiment is for large instances only'
     assert config.time_limit == 60, 'Big experiment needs time_limit to be 60'
@@ -46,17 +46,17 @@ def big_experiment():
         (results['id'] < 49) & ((results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6))
         , ['id', 'formulation']].values
 
-    to_execute = {
-                     (instance_id, formulation_name)
-                     for instance_id in range(1, 49)
-                     for formulation_name in formulations.keys()
-                 } - set(map(tuple, solved))
+    all_executions = {(instance_id, formulation_name) for instance_id in range(1, 49) for formulation_name in
+                      formulations.keys()}
+    to_execute = sorted(list(all_executions - set(map(tuple, solved))))
+    print(f'All executions: {sorted(all_executions)}')
+    print(f'To execute: {to_execute}')
 
     print(f'Already solved {len(solved)} / {4 * 48} problems\n')
     instance_loader = InstanceLoader(config)
     instances = instance_loader.load_instances()
 
-    for i, (instance_id, formulation_name) in enumerate(list(to_execute)[:config.n_instances_big]):
+    for i, (instance_id, formulation_name) in enumerate(to_execute[:config.n_instances_big]):
         config.set_formulation(formulation_name)
         instance = instances[instance_id]
         print(f'\nInstance {i + 1}/{config.n_instances_big}: \n  '
