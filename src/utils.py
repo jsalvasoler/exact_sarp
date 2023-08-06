@@ -12,10 +12,11 @@ class Instance:
                  instance_results: dict = None):
         self.name = None if full_name is None else full_name[3:-4]
         self.id = None if full_name is None else int(full_name[:2])
-        self.network_type = 'RC' if 'RC' in full_name else 'R'
+        self.network_type = None if full_name is None else ('RC' if 'RC' in full_name else 'R')
         self.instance_results = instance_results
 
-        assert self.id <= 48 or 75 <= T_max <= 250, f'Instance {self.id} has invalid T_max = {T_max}.'
+        assert self.id is None or (self.id <= 48 or 75 <= T_max <= 250), \
+            f'Instance {self.id} has invalid T_max = {T_max}.'
 
         if seed is not None:
             random.seed(seed)
@@ -77,9 +78,10 @@ class Instance:
 
 
 class Formulation(ABC):
-    def __init__(self, instance: Instance, activations: Dict[str, bool] = None):
+    def __init__(self, instance: Instance, activations: Dict[str, bool] = None, linear_relax: bool = False):
         self.instance = instance
         self.activations = activations if activations is not None else {}
+        self.linear_relax = linear_relax
         self.solver = gp.Model()
         self.solver._num_lazy_constraints_added = 0
         self.constraints = {}

@@ -5,21 +5,22 @@ from src.utils import Formulation, Instance, Solution
 
 # noinspection DuplicatedCode
 class MTZOptFormulation(Formulation):
-    def __init__(self, inst: Instance, activations: dict = None):
-        super().__init__(inst, activations)
+    def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False):
+        super().__init__(inst, activations, linear_relax)
         self.x = {}
         self.y = {}
         self.u = {}
         self.z = None
 
     def define_variables(self):
+        var_type = gp.GRB.CONTINUOUS if self.linear_relax else gp.GRB.BINARY
         for i in self.instance.N:
-            self.y[i] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'y_{i}', lb=0, ub=1)
+            self.y[i] = self.solver.addVar(vtype=var_type, name=f'y_{i}', lb=0, ub=1)
         for i in self.instance.N_0:
             for j in self.instance.N_0:
-                self.x[i, j] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'x_{i}_{j}', lb=0, ub=1)
+                self.x[i, j] = self.solver.addVar(vtype=var_type, name=f'x_{i}_{j}', lb=0, ub=1)
         for i in self.instance.N_0:
-            self.u[i] = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name=f'u_{i}', lb=self.instance.t[0, i],
+            self.u[i] = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name=f'u_{i}', lb=0,
                                            ub=self.instance.T_max)
         self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
 
@@ -108,3 +109,14 @@ class MTZOptFormulation(Formulation):
                         break
             k += 1
         return Solution(self.instance, x, self.solver.objVal)
+
+    def impose_solution(self, x, y, u):
+        for k in self.x.keys():
+            assert k in x, f'{k} not in the provided x values'
+            self.solver.addConstr(self.x[k] == x[k])
+        for k in self.y.keys():
+            assert k in y, f'{k} not in the provided y values'
+            self.solver.addConstr(self.y[k] == y[k])
+        for k in self.u.keys():
+            assert k in u, f'{k} not in the provided u values'
+            self.solver.addConstr(self.u[k] == u[k])
