@@ -80,3 +80,7 @@ class Config:
     @property
     def exception_when_non_optimal(self):
         return self.__config['execution']['exception_when_non_optimal']
+
+    @property
+    def instance_name(self):
+        return self.__config['execution']['instance_name']
