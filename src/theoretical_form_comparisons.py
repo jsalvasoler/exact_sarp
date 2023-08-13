@@ -44,6 +44,7 @@ def run_experiment(draw, seed=1):
 
     x = {k: v.X for k, v in scf_form.x.items()}
     y = {k: v.X for k, v in scf_form.y.items()}
+    f = {k: v.X for k, v in scf_form.f.items()}
     u = {i: sum(scf_form.x[j, i].X * instance.t[j, i] for j in instance.N_0) + instance.T_max - sum(
         scf_form.f[j, i].X for j in instance.N_0) for i in instance.N}
     u[0] = instance.T_max
@@ -61,9 +62,27 @@ def run_experiment(draw, seed=1):
             if i == j:
                 continue
             lhs = round(u[j] - u[i], 4)
+            lhs_aux = (sum(x[k, j] * instance.t[k, j] for k in instance.N_0),
+                       -sum(x[k, i] * instance.t[k, i] for k in instance.N_0),
+                       sum(f[k, i] for k in instance.N_0), -sum(f[k, j] for k in instance.N_0))
+            rhs_aux = (x[i, j], -instance.T_max, instance.T_max * x[i, j])
             rhs = round(x[i, j] * (instance.T_max + instance.t[i, j]) - instance.T_max, 4)
             satisfied_mtz[i, j] = True if lhs >= rhs else False
-            print(f'MTZ for {i}->{j}\n   {lhs} >= {rhs}: {True if satisfied_mtz[i, j] else False}')
+            # print(f'MTZ for {i}->{j}\n   {lhs} >= {rhs}: {True if satisfied_mtz[i, j] else False}')
+            to_check_left = sum(x[k, j] * instance.t[k, j] for k in instance.N_0) + sum(f[i, k] for k in instance.N_0)
+            to_check_right = x[i, j] * (instance.T_max + instance.t[i, j])
+            to_check = to_check_left >= to_check_right
+            diff = to_check_left - to_check_right
+            print(f' Aux values:'
+                  f'\n ---> sum x_kj*t_kj {lhs_aux[0]}'
+                  f'\n ---> -sum x_ki*t_ki {lhs_aux[1]}'
+                  f'\n ---> sum f_ik {sum(f[i, k] for k in instance.N_0)}'                  
+                  f'\n ---> sum f_ki {lhs_aux[2]}'
+                  f'\n ---> -sum f_kj {lhs_aux[3]}'
+                  f'\n ---> x_ij*t_ij {rhs_aux[0]}'
+                  f'\n ---> -Tmax {rhs_aux[1]}'
+                  f'\n ---> Tmax*x_ij {rhs_aux[2]}'
+                  f'\n what i am checking: {to_check}, diff {diff}, (i = {i}, j = {j})')
     satisfied_extra = {}
     for i in instance.N:
         print(f'Extra constraints for {i}')
