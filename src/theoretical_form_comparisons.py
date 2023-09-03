@@ -58,31 +58,22 @@ def run_experiment(draw, seed=1):
     # Check whether the solution is feasible for the MTZOPT formulation
     satisfied_mtz = {}
     for i in instance.N:
-        for j in instance.N_0:
+        for j in instance.N:
             if i == j:
                 continue
-            lhs = round(u[j] - u[i], 4)
-            lhs_aux = (sum(x[k, j] * instance.t[k, j] for k in instance.N_0),
-                       -sum(x[k, i] * instance.t[k, i] for k in instance.N_0),
-                       sum(f[k, i] for k in instance.N_0), -sum(f[k, j] for k in instance.N_0))
-            rhs_aux = (x[i, j], -instance.T_max, instance.T_max * x[i, j])
-            rhs = round(x[i, j] * (instance.T_max + instance.t[i, j]) - instance.T_max, 4)
-            satisfied_mtz[i, j] = True if lhs >= rhs else False
-            # print(f'MTZ for {i}->{j}\n   {lhs} >= {rhs}: {True if satisfied_mtz[i, j] else False}')
-            to_check_left = sum(x[k, j] * instance.t[k, j] for k in instance.N_0) + sum(f[i, k] for k in instance.N_0)
-            to_check_right = x[i, j] * (instance.T_max + instance.t[i, j])
+            # to_check_left = sum(x[k, j] * instance.t[k, j] for k in instance.N_0) + sum(f[i, k] for k in instance.N_0)
+            # to_check_left = sum(x[k, j] * instance.t[k, j] for k in instance.N_0) - \
+            # sum(x[k, i] * instance.t[k, i] for k in instance.N_0) + \
+            to_check_left = x[i, j] * instance.t[i, j] + \
+                            0 - \
+                            instance.T_max * sum(x[k, j] for k in instance.N_0 if k != i)
+            to_check_right = x[i, j] * instance.t[i, j] + instance.T_max * (x[i, j] - 1)
+            to_check_left = round(to_check_left, 4)
+            to_check_right = round(to_check_right, 4)
+            print(f'{to_check_left} >= {to_check_right}: {True if to_check_left >= to_check_right else False} (i={i}, j={j})')
             to_check = to_check_left >= to_check_right
-            diff = to_check_left - to_check_right
-            print(f' Aux values:'
-                  f'\n ---> sum x_kj*t_kj {lhs_aux[0]}'
-                  f'\n ---> -sum x_ki*t_ki {lhs_aux[1]}'
-                  f'\n ---> sum f_ik {sum(f[i, k] for k in instance.N_0)}'                  
-                  f'\n ---> sum f_ki {lhs_aux[2]}'
-                  f'\n ---> -sum f_kj {lhs_aux[3]}'
-                  f'\n ---> x_ij*t_ij {rhs_aux[0]}'
-                  f'\n ---> -Tmax {rhs_aux[1]}'
-                  f'\n ---> Tmax*x_ij {rhs_aux[2]}'
-                  f'\n what i am checking: {to_check}, diff {diff}, (i = {i}, j = {j})')
+
+            satisfied_mtz[i, j] = to_check
     satisfied_extra = {}
     for i in instance.N:
         print(f'Extra constraints for {i}')
@@ -141,11 +132,51 @@ def infeasible_analysis(solver):
     raise Exception('Infeasible')
 
 
-if __name__ == '__main__':
-    for seed in range(1, 100):
-        print(f'Seed: {seed}')
-        if not run_experiment(draw=False, seed=seed):
-            print('False!')
-            break
+def finding_counter_example(seed=0):
+    N = 2
+    instance = Instance(N, 1, 10, 1, seed=seed)
+    mtz_opt = MTZOptFormulation(instance, linear_relax=True)
+    mtz_opt.formulate()
 
-    print('Done')
+    scf = SCFFormulation(instance, activations={'flow_visit': False}, linear_relax=True)
+    scf.solver = mtz_opt.solver
+    scf.formulate()
+
+    mtz_opt.solver = scf.solver
+    mtz_opt.f = scf.f
+    mtz_opt.solver.setObjective(
+        gp.quicksum(mtz_opt.f[k, 1] + mtz_opt.f[1, k] - mtz_opt.x[k, 1] * instance.t[k, 1] for k in instance.N_0),
+        # 1
+    )
+
+    mtz_opt.solver.optimize()
+    print(f'Solution:')
+    for v in mtz_opt.solver.getVars():
+        print(f'\t{v.varName}: {v.x}')
+
+    # Print constraints
+    print(f'Constraints:')
+    for c in mtz_opt.solver.getConstrs():
+        print(f'\t{c.constrName}: {c.RHS} {c.sense} {mtz_opt.solver.getRow(c)}')
+
+    x = {k: v.X for k, v in mtz_opt.x.items()}
+    y = {k: v.X for k, v in mtz_opt.y.items()}
+    u = {k: v.X for k, v in mtz_opt.u.items()}
+
+    mtz_opt.impose_solution(x, y, u)
+    mtz_opt.solver.optimize()
+
+    if mtz_opt.solver.status == gp.GRB.INFEASIBLE:
+        print('We found such example')
+        return False
+    return True
+
+if __name__ == '__main__':
+    # for seed in range(1, 100):
+    #     print(f'Seed: {seed}')
+    #     if not run_experiment(draw=False, seed=seed):
+    #         print('False!')
+    #         break
+    #
+    # print('Done')
+    finding_counter_example()
