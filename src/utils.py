@@ -14,8 +14,11 @@ class Instance:
         self.id = None if full_name is None else int(full_name[:2])
         self.network_type = 'RC' if 'RC' in full_name else 'R'
         self.instance_results = instance_results
+        self.instance_type = 'large' if 'large' in self.name else 'small'
 
-        assert self.id <= 48 or 75 <= T_max <= 250, f'Instance {self.id} has invalid T_max = {T_max}.'
+        if self.instance_type == 'large':
+            assert self.id is None or (self.id <= 48 or 75 <= T_max <= 250),\
+                f'Instance {self.id} has invalid T_max = {T_max}.'
 
         if seed is not None:
             random.seed(seed)
@@ -23,6 +26,19 @@ class Instance:
         self.N = {i + 1 for i in range(N_size)}
         self.K = {i + 1 for i in range(K_size)}
         self.N_0 = {0}.union(self.N)
+        if t is None:
+            self.t = {
+                (i, j): 0 if i == j else random.randint(1, 10)
+                for i in self.N_0
+                for j in self.N_0 if i <= j
+            }
+            self.t.update({
+                (j, i): self.t[i, j]
+                for i, j in self.t
+                if i != j
+            })
+        else:
+            self.t = t
         self.t = {
             (i, j): 0 if i == j else random.randint(1, 10)
             for i in self.N_0
@@ -77,9 +93,10 @@ class Instance:
 
 
 class Formulation(ABC):
-    def __init__(self, instance: Instance, activations: Dict[str, bool] = None):
+    def __init__(self, instance: Instance, activations: Dict[str, bool] = None, linear_relax: bool = False):
         self.instance = instance
         self.activations = activations if activations is not None else {}
+        self.linear_relax = linear_relax
         self.solver = gp.Model()
         self.solver._num_lazy_constraints_added = 0
         self.constraints = {}
