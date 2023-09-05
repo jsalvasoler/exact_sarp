@@ -82,6 +82,13 @@ class MTZOptFormulation(Formulation):
                 name=f'arrival_time_{i}'
             )
 
+    def constraint_u_lower_bound(self):
+        for i in self.instance.N_0:
+            self.solver.addConstr(
+                self.u[i] >= self.instance.t[0, i] * self.x[0, i],
+                name=f'u_lower_bound_{i}'
+            )
+
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
         prefix = 'constraint_'
