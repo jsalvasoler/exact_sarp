@@ -17,12 +17,12 @@ def run_experiment(draw, seed=1):
     4. Check whether the solution is feasible for the LR of the MTZOPT formulation
     """
 
-    instance = Instance(10, 3, 8, 1, seed=seed)
+    instance = Instance(10, 3, 10, 1, seed=seed)
     scf_form = SCFFormulation(instance, linear_relax=True)
     scf_form.formulate()
 
     profits = {i: random.randint(-3, 10) for i in instance.N}
-    scf_form.solver.setObjective(gp.quicksum(profits[i] * scf_form.y[i] for i in instance.N), gp.GRB.MAXIMIZE)
+    # scf_form.solver.setObjective(gp.quicksum(profits[i] * scf_form.y[i] for i in instance.N), gp.GRB.MAXIMIZE)
     scf_form.solver.optimize()
 
     if scf_form.solver.status == gp.GRB.INFEASIBLE:
@@ -32,7 +32,6 @@ def run_experiment(draw, seed=1):
     for k, v in scf_form.y.items():
         if v.X > 0:
             print(f'y_{k}: {v.X}')
-        print(f'{k}: {v.X}')
     for k, v in scf_form.x.items():
         if v.X > 0:
             print(f'x_{k}: {v.X}')
@@ -77,8 +76,9 @@ def run_experiment(draw, seed=1):
     satisfied_extra = {}
     for i in instance.N:
         print(f'Extra constraints for {i}')
-        satisfied_extra[i] = 0 <= u[i] <= instance.T_max
-        print(f'   {0} <= {u[i]} <= {instance.T_max}: {True if satisfied_extra[i] else False}')
+        lb = x[0, i] * instance.t[0, i]
+        satisfied_extra[i] = lb <= u[i] <= instance.T_max
+        print(f'   {lb} <= {u[i]} <= {instance.T_max}: {True if satisfied_extra[i] else False}')
 
     print(f'Satisfied MTZ constraints: {sum(satisfied_mtz.values())} / {len(satisfied_mtz)}')
     print(f'Satisfied extra constraints: {sum(satisfied_extra.values())} / {len(satisfied_extra)}')
@@ -134,45 +134,61 @@ def infeasible_analysis(solver):
 
 def finding_counter_example(seed=0):
     N = 2
-    instance = Instance(N, 1, 10, 1, seed=seed)
+    t = {
+        (0, 1): 1 / 2,
+        (1, 0): 1 / 2,
+        (0, 2): 1,
+        (2, 0): 1,
+        (1, 2): 1,
+        (2, 1): 1,
+        (0, 0): 0,
+        (1, 1): 0,
+        (2, 2): 0
+    }
+    instance = Instance(N, 1, 1, 1, t=t, seed=seed)
+    instance.print()
     mtz_opt = MTZOptFormulation(instance, linear_relax=True)
     mtz_opt.formulate()
+    mtz_opt.solver.optimize()
+    mtz_relax = mtz_opt.solver.objVal
 
-    scf = SCFFormulation(instance, activations={'flow_visit': False}, linear_relax=True)
-    scf.solver = mtz_opt.solver
+    scf = SCFFormulation(instance, linear_relax=True)
     scf.formulate()
+    scf.solver.optimize()
+    scf_relax = scf.solver.objVal
 
-    mtz_opt.solver = scf.solver
-    mtz_opt.f = scf.f
-    mtz_opt.solver.setObjective(
-        gp.quicksum(mtz_opt.f[k, 1] + mtz_opt.f[1, k] - mtz_opt.x[k, 1] * instance.t[k, 1] for k in instance.N_0),
-        # 1
-    )
+    # Print MTZ solution:
+    print('MTZ solution:')
+    for i in instance.N_0:
+        for j in instance.N_0:
+            if i != j:
+                print(f'x_{i, j} = {mtz_opt.x[i, j].X}')
+                print(f't_{i, j} = {instance.t[i, j]}')
+    for i in instance.N_0:
+        if i != 0:
+            print(f'y_{i} = {mtz_opt.y[i].X}')
+        print(f'u_{i} = {mtz_opt.u[i].X}')
+    print('-----------------')
 
-    mtz_opt.solver.optimize()
-    print(f'Solution:')
-    for v in mtz_opt.solver.getVars():
-        print(f'\t{v.varName}: {v.x}')
+    # Print SCF solution:
+    print('SCF solution:')
+    for i in instance.N_0:
+        for j in instance.N_0:
+            if i != j:
+                print(f'x_{i, j} = {scf.x[i, j].X}')
+                print(f'f_{i, j} = {scf.f[i, j].X}')
+                print(f't_{i, j} = {instance.t[i, j]}')
+    for i in instance.N:
+        print(f'y_{i} = {scf.y[i].X}')
 
-    # Print constraints
-    print(f'Constraints:')
-    for c in mtz_opt.solver.getConstrs():
-        print(f'\t{c.constrName}: {c.RHS} {c.sense} {mtz_opt.solver.getRow(c)}')
+    print('-----------------')
+    print(f'alpha: {instance.alpha}')
+    print(f'MTZ: {mtz_relax}')
+    print(f'SCF: {scf_relax}')
 
-    x = {k: v.X for k, v in mtz_opt.x.items()}
-    y = {k: v.X for k, v in mtz_opt.y.items()}
-    u = {k: v.X for k, v in mtz_opt.u.items()}
-
-    mtz_opt.impose_solution(x, y, u)
-    mtz_opt.solver.optimize()
-
-    if mtz_opt.solver.status == gp.GRB.INFEASIBLE:
-        print('We found such example')
-        return False
-    return True
 
 if __name__ == '__main__':
-    # for seed in range(1, 100):
+    # for seed in range(1, 2):
     #     print(f'Seed: {seed}')
     #     if not run_experiment(draw=False, seed=seed):
     #         print('False!')
