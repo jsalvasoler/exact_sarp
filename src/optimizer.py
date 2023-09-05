@@ -12,6 +12,7 @@ class Optimizer:
         self.solver = formulation.solver
         self.config = config
         self.solver.setParam('TimeLimit', self.config.time_limit * 60)
+        self.solver.setParam('Threads', 12)
 
     def run(self):
         self.formulation.formulate()

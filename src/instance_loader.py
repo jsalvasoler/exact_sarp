@@ -41,6 +41,9 @@ class InstanceLoader:
             instances[instance.id] = instance
 
         if self.__config.n_instances_main is not None:
+
+            if self.__config.n_instances_main == 1 and self.__config.instance_name:
+                return {k: v for k, v in instances.items() if v.name == self.__config.instance_name and type(k) is str}
             # Select randomly n_instances instances using random.sample
             random.seed(self.__config.seed)
             instances = {k: v for k, v in instances.items() if type(k) is str}
