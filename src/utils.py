@@ -12,9 +12,9 @@ class Instance:
                  instance_results: dict = None):
         self.name = None if full_name is None else full_name[3:-4]
         self.id = None if full_name is None else int(full_name[:2])
-        self.network_type = 'RC' if 'RC' in full_name else 'R'
+        self.network_type = None if full_name is None else ('RC' if 'RC' in full_name else 'R')
+        self.instance_type = None if full_name is None else ('large' if 'large' in self.name else 'small')
         self.instance_results = instance_results
-        self.instance_type = 'large' if 'large' in self.name else 'small'
 
         if self.instance_type == 'large':
             assert self.id is None or (self.id <= 48 or 75 <= T_max <= 250),\
