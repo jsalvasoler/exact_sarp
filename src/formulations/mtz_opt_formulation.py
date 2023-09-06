@@ -5,8 +5,8 @@ from src.utils import Formulation, Instance, Solution
 
 # noinspection DuplicatedCode
 class MTZOptFormulation(Formulation):
-    def __init__(self, inst: Instance, activations: dict = None):
-        super().__init__(inst, activations)
+    def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False):
+        super().__init__(inst, activations, linear_relax)
         self.x = {}
         self.y = {}
         self.u = {}
