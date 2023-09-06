@@ -12,14 +12,15 @@ class SCFFormulation(Formulation):
         self.z = None
 
     def define_variables(self):
+        var_type = gp.GRB.CONTINUOUS if self.linear_relax else gp.GRB.BINARY
         for i in self.instance.N:
-            self.y[i] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'y_{i}', lb=0, ub=1)
+            self.y[i] = self.solver.addVar(vtype=var_type, name=f'y_{i}', lb=0, ub=1)
         for i in self.instance.N_0:
             for j in self.instance.N_0:
                 self.f[i, j] = self.solver.addVar(
                     vtype=gp.GRB.CONTINUOUS, name=f'f_{i}_{j}', lb=0, ub=self.instance.T_max)
                 self.x[i, j] = self.solver.addVar(
-                    vtype=gp.GRB.BINARY, name=f'x_{i}_{j}', lb=0, ub=1)
+                    vtype=var_type, name=f'x_{i}_{j}', lb=0, ub=1)
         self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
 
     def constraint_define_obj(self):

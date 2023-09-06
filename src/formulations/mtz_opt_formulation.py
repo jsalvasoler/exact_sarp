@@ -13,11 +13,12 @@ class MTZOptFormulation(Formulation):
         self.z = None
 
     def define_variables(self):
+        var_type = gp.GRB.CONTINUOUS if self.linear_relax else gp.GRB.BINARY
         for i in self.instance.N:
-            self.y[i] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'y_{i}', lb=0, ub=1)
+            self.y[i] = self.solver.addVar(vtype=var_type, name=f'y_{i}', lb=0, ub=1)
         for i in self.instance.N_0:
             for j in self.instance.N_0:
-                self.x[i, j] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'x_{i}_{j}', lb=0, ub=1)
+                self.x[i, j] = self.solver.addVar(vtype=var_type, name=f'x_{i}_{j}', lb=0, ub=1)
         for i in self.instance.N_0:
             self.u[i] = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name=f'u_{i}', lb=self.instance.t[0, i],
                                            ub=self.instance.T_max)
