@@ -85,7 +85,7 @@ class SCFFormulation(Formulation):
             )
 
     def constraint_not_stay(self):
-        for i in self.instance.N:
+        for i in self.instance.N_0:
             self.solver.addConstr(
                 self.x[i, i] == 0,
                 name=f'not_stay_{i}'
