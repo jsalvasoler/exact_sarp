@@ -39,11 +39,6 @@ class Instance:
             })
         else:
             self.t = t
-        self.t = {
-            (i, j): 0 if i == j else random.randint(1, 10)
-            for i in self.N_0
-            for j in self.N_0
-        } if t is None else t
         self.T_max = T_max
         self.C = {i + 1 for i in range(C_size)}
         self.alpha = {
