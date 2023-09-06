@@ -36,13 +36,14 @@ class CutSetFormulation(Formulation):
         return Solution(self.instance, x, self.solver.objVal)
 
     def define_variables(self):
+        var_type = gp.GRB.CONTINUOUS if self.linear_relax else gp.GRB.BINARY
         for i in self.instance.N_0:
             for k in self.instance.K:
-                self.y[i, k] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'y_{i}_{k}', lb=0, ub=1)
+                self.y[i, k] = self.solver.addVar(vtype=var_type, name=f'y_{i}_{k}', lb=0, ub=1)
         for i in self.instance.N_0:
             for j in self.instance.N_0:
                 for k in self.instance.K:
-                    self.x[i, j, k] = self.solver.addVar(vtype=gp.GRB.BINARY, name=f'x_{i}_{j}_{k}', lb=0, ub=1)
+                    self.x[i, j, k] = self.solver.addVar(vtype=var_type, name=f'x_{i}_{j}_{k}', lb=0, ub=1)
         self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
 
         self.solver._x = self.x
