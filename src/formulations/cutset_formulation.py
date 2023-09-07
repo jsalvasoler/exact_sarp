@@ -1,24 +1,34 @@
 import gurobipy as gp
 import networkx as nx
+import itertools
 
 from src.utils import Formulation, Instance, Solution
 
 
 # noinspection DuplicatedCode
 class CutSetFormulation(Formulation):
-    def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False):
+    def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False, full_model: bool = False):
         super().__init__(inst, activations, linear_relax)
+        self.name = 'cutset'
+
         self.x = {}
         self.y = {}
         self.z = None
 
-        self.callback = create_callback(activations)
-        self.solver.Params.lazyConstraints = 1
+        self.full_model = full_model
+
+        if full_model:
+            self.callback = None
+        else:
+            self.callback = create_callback(activations)
+            self.solver.Params.lazyConstraints = 1
 
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
         prefix = 'constraint_'
         constraint_names = [method_name[len(prefix):] for method_name in dir(self) if method_name.startswith(prefix)]
+        if self.full_model:
+            constraint_names.append('cutset')
 
         for constraint_name in constraint_names:
             self.constraints[constraint_name] = getattr(self, f'{prefix}{constraint_name}')
@@ -49,6 +59,20 @@ class CutSetFormulation(Formulation):
         self.solver._x = self.x
         self.solver._y = self.y
         self.solver._z = self.z
+
+    def constraint_cutset(self):
+        # Use itertools to find all subsets of N
+        subsets = []
+        for i in range(1, len(self.instance.N)):
+            subsets.extend(itertools.combinations(self.instance.N, i))
+        for k in self.instance.K:
+            for subset in subsets:
+                for h in subset:
+                    delta = {(i, j) for (i, j, k) in self.x.keys() if i in subset and j not in subset}
+                    self.solver.addConstr(
+                        gp.quicksum(self.x[i, j, k] for (i, j) in delta) >= self.y[h, k],
+                        name=f'cutset_{k}_{subset}_{h}'
+                    )
 
     def constraint_define_obj(self):
         for c in self.instance.C:

@@ -7,6 +7,8 @@ from src.utils import Formulation, Instance, Solution
 class MTZFormulation(Formulation):
     def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False):
         super().__init__(inst, activations, linear_relax)
+        self.name = 'mtz'
+
         self.x = {}
         self.y = {}
         self.u = {}

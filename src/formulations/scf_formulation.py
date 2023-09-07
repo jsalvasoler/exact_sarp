@@ -6,6 +6,8 @@ from src.utils import Formulation, Instance, Solution
 class SCFFormulation(Formulation):
     def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False):
         super().__init__(inst, activations, linear_relax)
+        self.name = 'SCF'
+
         self.f = {}     # keys are (i,j) and values are the flow i->j
         self.x = {}     # keys are (i,j) and is 1 if edge (i,j) is used (has flow > 0)
         self.y = {}     # keys are (i) and is 1 if node i is visited
