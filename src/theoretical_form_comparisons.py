@@ -3,6 +3,7 @@ import warnings
 
 import networkx as nx
 
+from src.formulations.cutset_formulation import CutSetFormulation
 from src.formulations.mtz_formulation import MTZFormulation
 from utils import Formulation, Instance, Solution
 from formulations.scf_formulation import SCFFormulation
@@ -378,7 +379,88 @@ def try_to_see_stronger_or_weaker_mtz_vs_scf():
     print(results)
 
 
+def experiments_scf_vs_cutset():
+    try_to_see_stronger_or_weaker('mtz', 'cutset')
+
+
+def try_to_see_stronger_or_weaker(form_1, form_2):
+    results = {
+        f'{form_1}_higher': 0,
+        f'{form_2}_higher': 0,
+        'equal': 0,
+        'infeasible': 0,
+        f'example_{form_1}_higher': [],
+        f'example_{form_2}_higher': [],
+    }
+    form_1 = formulations[form_1]
+    form_2 = formulations[form_2]
+    N_exec = 2500
+    for seed in range(0, N_exec):
+        seed = -seed
+        if seed != -14:
+            continue
+        print(f'Seed: {seed}')
+        results = run_experiment_stronger_weaker(seed, results, form_1, form_2)
+    print(results)
+
+
+def run_experiment_stronger_weaker(seed, results, form_1, form_2):
+    random.seed(seed)
+    N = random.randint(2, 8)
+    K = random.randint(1, min(N, 4))
+    t = {
+        (0, 1): 1 / 2,
+        (1, 0): 1 / 2,
+        (0, 2): 1,
+        (2, 0): 1,
+        (1, 2): 1,
+        (2, 1): 1,
+        (0, 0): 0,
+        (1, 1): 0,
+        (2, 2): 0
+    }
+    alpha = {
+        (1, 1): 0, (2, 1): 1
+    }
+    instance = Instance(N, K, random.randint(10, 40), 1, t=None, alpha=None, seed=seed)
+    instance.print()
+
+    scf = form_1(instance, linear_relax=True)
+    scf.formulate()
+    scf.solver.optimize()
+    if type(form_2) is CutSetFormulation:
+        cutset = form_2(instance, linear_relax=True, full_model=True)
+    else:
+        cutset = form_2(instance, linear_relax=True)
+    cutset.formulate()
+    cutset.solver.optimize()
+
+    try:
+        scf_relax = scf.solver.objVal
+        cutset_relax = cutset.solver.objVal
+        if abs(scf_relax - cutset_relax) < 1e-6:
+            results['equal'] += 1
+        elif scf_relax > cutset_relax:
+            results[f'{scf.name}_higher'] += 1
+            results[f'example_{scf.name}_higher'].append((seed, scf_relax, cutset_relax, len(instance.N)))
+        else:
+            results[f'{cutset.name}_higher'] += 1
+            results[f'example_{cutset.name}_higher'].append((seed, scf_relax, cutset_relax, len(instance.N)))
+    except Exception as e:
+        results['infeasible'] += 1
+    return results
+
+
+formulations = {
+    'mtz': MTZFormulation,
+    'cutset': CutSetFormulation,
+    'scf': SCFFormulation,
+    'mtz_opt': MTZOptFormulation,
+}
+
+
 if __name__ == '__main__':
     # experiments_mtzopt_vs_scf()
     # finding_counter_example_mtzopt_vs_scf()
-    experiments_mtz_vs_scf()
+    # experiments_mtz_vs_scf()
+    experiments_scf_vs_cutset()
