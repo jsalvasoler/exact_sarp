@@ -8,6 +8,9 @@ class Config:
         self.__root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.__config = self.__read_config()
 
+        self.results_large = 'results_large.csv'
+        self.results_small = 'results_small.csv'
+
     def __read_config(self):
         """
         Read .yaml config file and return a dictionary with the configuration.
@@ -61,8 +64,8 @@ class Config:
     @property
     def results_file(self):
         return {
-            'small': os.path.join(self.__root, 'results', f'results_small.csv'),
-            'large': os.path.join(self.__root, 'results', f'results_large.csv')
+            'small': os.path.join(self.__root, 'results', self.results_small),
+            'large': os.path.join(self.__root, 'results', self.results_large)
         }[self.instance_type]
 
     @property

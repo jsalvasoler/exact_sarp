@@ -11,7 +11,7 @@ from pyinstrument import Profiler
 
 formulations = {
     'mtz': MTZFormulation,
-    # 'cutset': CutSetFormulation,
+    'cutset': CutSetFormulation,
     'scf': SCFFormulation,
     'mtz_opt': MTZOptFormulation,
 }
@@ -62,15 +62,46 @@ def big_experiment():
         print(f'\nInstance {i + 1}/{config.n_instances_big}: \n  '
               f'id = {instance_id}, name = {instance.name}, formulation = {formulation_name}\n'
               f'instance information: {instance.instance_results}\n\n')
+
         formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
         optimizer = Optimizer(formulation, config)
         optimizer.run()
+
+
+def instance_difficulty_experiment():
+    instance_name, instance_id = 'large_RC50_K4T5', 42
+    # instance_name, instance_id = 'large_RC25_K2T3', 8
+    config = Config()
+    assert config.instance_type == 'large' and config.formulation == 'scf', 'Check config settings. Need large + scf'
+    config.results_large = 'results_instance_diff.csv'
+
+    instance_loader = InstanceLoader(config)
+    instances = instance_loader.load_instances()
+
+    instance = instances[instance_id]
+
+    T_max_set = [1,2,3,4,5,6,7]
+    K_size_set = [6]
+    to_execute = [(T_max, K_size) for T_max in T_max_set for K_size in K_size_set]
+    for i, (T_max, K_size) in enumerate(to_execute):
+        instance.update_T_max(T_max)
+        instance.update_K_size(K_size)
+
+        print(f'\nInstance {i + 1}/{len(to_execute)}: \n  T_max = {T_max}, K_size = {K_size}\n\n')
+        instance.print()
+
+        formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
+        optimizer = Optimizer(formulation, config)
+        optimizer.run()
+
+    return None
 
 
 if __name__ == '__main__':
     profiler = Profiler()
     profiler.start()
     # main()
-    big_experiment()
+    # big_experiment()
+    instance_difficulty_experiment()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))

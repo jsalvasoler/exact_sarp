@@ -86,6 +86,12 @@ class Instance:
         else:
             print(f'Objective value validated to be optimal.')
 
+    def update_T_max(self, T):
+        self.T_max = T
+
+    def update_K_size(self, K_size):
+        self.K = {i + 1 for i in range(K_size)}
+
 
 class Formulation(ABC):
     def __init__(self, instance: Instance, activations: Dict[str, bool] = None, linear_relax: bool = False):
