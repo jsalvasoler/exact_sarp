@@ -328,3 +328,5 @@ class Solution:
         plt.show()
 
 
+FIELDS_INSTANCE_RESULTS_LARGE = ['Z_TS', 'm', 'W_TS', 'CPU_sec', 'Z_CP', 'opt_gap', 'ts_vs_cp_gap', 'ts_vs_gh_gap']
+

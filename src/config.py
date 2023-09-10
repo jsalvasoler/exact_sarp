@@ -8,8 +8,7 @@ class Config:
         self.__root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.__config = self.__read_config()
 
-        self.results_large = 'results_large.csv'
-        self.results_small = 'results_small.csv'
+        self._results_file = 'results.csv'
 
     def __read_config(self):
         """
@@ -62,11 +61,8 @@ class Config:
         return os.path.join(self.__root, 'data')
 
     @property
-    def results_file(self):
-        return {
-            'small': os.path.join(self.__root, 'results', self.results_small),
-            'large': os.path.join(self.__root, 'results', self.results_large)
-        }[self.instance_type]
+    def results_filepath(self):
+        return os.path.join(self.__root, 'results', self._results_file)
 
     @property
     def optimal_solutions_file(self):
@@ -87,3 +83,11 @@ class Config:
     @property
     def instance_name(self):
         return self.__config['execution']['instance_name']
+
+    @property
+    def results_file(self):
+        return self._results_file
+
+    @results_file.setter
+    def results_file(self, value):
+        self._results_file = value

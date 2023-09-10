@@ -1,5 +1,5 @@
 from src.config import Config
-from utils import Formulation, Solution
+from utils import Formulation, Solution, FIELDS_INSTANCE_RESULTS_LARGE
 import gurobipy as gp
 import pandas as pd
 from datetime import datetime
@@ -68,16 +68,19 @@ class Optimizer:
             'routes': solution.routes_to_string(),
             'timestamp': timestamp,
         }
-        results = {**results, **self.formulation.instance.instance_results}
+        instance_results = self.formulation.instance.instance_results \
+            if self.config.instance_type == 'large' else {field: None for field in FIELDS_INSTANCE_RESULTS_LARGE}
+
+        results = {**results, **instance_results}
 
         try:
-            results_df = pd.read_csv(self.config.results_file, sep=';', decimal=',')
+            results_df = pd.read_csv(self.config.results_filepath, sep=';', decimal=',')
         except FileNotFoundError:
             results_df = pd.DataFrame(columns=list(results.keys()))
 
         results_df.loc[len(results_df)] = list(results.values())
         try:
-            results_df.to_csv(self.config.results_file, index=False, sep=';', decimal=',')
+            results_df.to_csv(self.config.results_filepath, index=False, sep=';', decimal=',')
         except PermissionError:
             warnings.warn('Could not save results. Saving it with a timestamp.')
             results_df.to_csv(f'results_{timestamp}.csv', index=False, sep=';', decimal=',')

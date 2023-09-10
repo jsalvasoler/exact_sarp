@@ -3,7 +3,7 @@ import random
 import pandas as pd
 from typing import List, Dict
 from src.config import Config
-from src.utils import Instance
+from src.utils import Instance, FIELDS_INSTANCE_RESULTS_LARGE
 
 
 class InstanceLoader:
@@ -96,13 +96,12 @@ class InstanceLoader:
 
     def get_instance_results_for_large(self, instance_file, N_size, K_size, T_max):
         network_type = 'RC' if 'RC' in instance_file else 'R'
-        fields = ['Z_TS', 'm', 'W_TS', 'CPU_sec', 'Z_CP', 'opt_gap', 'ts_vs_cp_gap', 'ts_vs_gh_gap']
         df_row = self.__original_results_large.loc[
             (self.__original_results_large['network_type'] == network_type) &
             (self.__original_results_large['nodes'] == N_size) &
             (self.__original_results_large['T_max'] == T_max) &
             (self.__original_results_large['K_size'] == K_size),
-            fields]
+            FIELDS_INSTANCE_RESULTS_LARGE]
         assert len(df_row) == 1, 'Error in extracting instance results'
 
         # Convert to dict and return

@@ -42,12 +42,13 @@ def define_formulation(config, instance):
 
 def big_experiment():
     config = Config()
+    config.results_file = 'big_results.csv'
+
     assert config.n_instances_main is None and config.n_instances_big, \
         'In big experiment, instance number is provided by n_instances_big'
-    assert config.instance_type == 'large', 'Big experiment is for large instances only'
     assert config.time_limit == 60, 'Big experiment needs time_limit to be 60'
 
-    results = pd.read_csv(config.results_file, sep=';', decimal=',')
+    results = pd.read_csv(config.results_filepath, sep=';', decimal=',')
 
     # Find instances + formulations that have already been solved
     # That means either the solve_time is greater than the time_limit or the mip_gap is zero + tolerance
@@ -112,8 +113,8 @@ def instance_difficulty_experiment():
 if __name__ == '__main__':
     profiler = Profiler()
     profiler.start()
-    # main()
-    big_experiment()
+    main()
+    # big_experiment()
     # instance_difficulty_experiment()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))
