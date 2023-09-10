@@ -28,7 +28,7 @@ class InstanceLoader:
     def read_original_results_large(self):
         return pd.read_csv(self.__config.original_results_file, sep=';', decimal=',')
 
-    def load_instances(self) -> Dict[str, Instance]:
+    def load_instances(self, id_indices: bool = True) -> Dict[str, Instance]:
         # List all instances in the directory
         instance_names = os.listdir(self.__instance_dir)
 
@@ -38,15 +38,16 @@ class InstanceLoader:
         for i, instance_name in enumerate(instance_names):
             instance = self.__load_instance(instance_name)
             instances[str(instance_name)] = instance
-            instances[instance.id] = instance
+            if id_indices:
+                instances[instance.id] = instance
 
         if self.__config.n_instances_main is not None:
 
             if self.__config.n_instances_main == 1 and self.__config.instance_name:
-                return {k: v for k, v in instances.items() if v.name == self.__config.instance_name and type(k) is str}
+                return {k: v for k, v in instances.items() if v.name == self.__config.instance_name}
             # Select randomly n_instances instances using random.sample
             random.seed(self.__config.seed)
-            instances = {k: v for k, v in instances.items() if type(k) is str}
+            instances = {k: v for k, v in instances.items()}
             instances = dict(random.sample(instances.items(), self.__config.n_instances_main))
 
         return instances

@@ -20,15 +20,24 @@ formulations = {
 def main():
     config = Config()
     instance_loader = InstanceLoader(config)
-    instances = instance_loader.load_instances()
+    instances = instance_loader.load_instances(id_indices=False)
 
     for i, (name, instance) in enumerate(instances.items()):
         print(f'\nInstance {i + 1}/{len(instances)}: \n  id = {name[:2]}, name = {name[3:-4]}\n\n')
         instance.print()
 
-        formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
+        formulation = define_formulation(config, instance)
         optimizer = Optimizer(formulation, config)
         optimizer.run()
+
+
+def define_formulation(config, instance):
+    if 'scf' in config.formulation:
+        formulation = formulations.get('scf')(
+            instance, config.activations.get(config.formulation, {}), variant=config.formulation)
+    else:
+        formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
+    return formulation
 
 
 def big_experiment():
@@ -46,13 +55,16 @@ def big_experiment():
         (results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6)
         , ['id', 'formulation']].values
 
-    all_executions = {(instance_id, formulation_name) for instance_id in range(1, 48 * 2 + 1) for formulation_name in
-                      formulations.keys()}
+    ids = [1, 27, 11, 7, 14, 15, 23, 24] # they correspond to N = 100, 100, 25, 25, 50, 50, 75, 75
+    ids = ids[2:-2]
+    # form_names = ['scf_cuts_2', 'scf_cuts_3', 'scf_sep_cuts']
+    form_names = ['scf_cuts_3']
+
+    all_executions = {(instance_id, form_name) for instance_id in ids for form_name in form_names}
     to_execute = sorted(list(all_executions - set(map(tuple, solved))), key=lambda x: x[0])
     print(f'All executions: {sorted(all_executions)}')
     print(f'To execute: {to_execute}')
 
-    print(f'Already solved {len(solved)} / {3 * 48 * 2} problems\n')
     instance_loader = InstanceLoader(config)
     instances = instance_loader.load_instances()
 
@@ -63,7 +75,7 @@ def big_experiment():
               f'id = {instance_id}, name = {instance.name}, formulation = {formulation_name}\n'
               f'instance information: {instance.instance_results}\n\n')
 
-        formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
+        formulation = define_formulation(config, instance)
         optimizer = Optimizer(formulation, config)
         optimizer.run()
 
@@ -80,7 +92,7 @@ def instance_difficulty_experiment():
 
     instance = instances[instance_id]
 
-    T_max_set = [1,2,3,4,5,6,7]
+    T_max_set = [1, 2, 3, 4, 5, 6, 7]
     K_size_set = [6]
     to_execute = [(T_max, K_size) for T_max in T_max_set for K_size in K_size_set]
     for i, (T_max, K_size) in enumerate(to_execute):
@@ -101,7 +113,7 @@ if __name__ == '__main__':
     profiler = Profiler()
     profiler.start()
     # main()
-    # big_experiment()
-    instance_difficulty_experiment()
+    big_experiment()
+    # instance_difficulty_experiment()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))

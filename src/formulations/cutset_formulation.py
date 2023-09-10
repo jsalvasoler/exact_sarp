@@ -17,9 +17,7 @@ class CutSetFormulation(Formulation):
 
         self.full_model = full_model
 
-        if full_model:
-            self.callback = None
-        else:
+        if not self.full_model:
             self.callback = create_callback(activations)
             self.solver.Params.lazyConstraints = 1
 

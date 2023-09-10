@@ -1,17 +1,28 @@
 import gurobipy as gp
+import itertools
+import networkx as nx
 
 from src.utils import Formulation, Instance, Solution
 
 
 class SCFFormulation(Formulation):
-    def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False):
+    def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False, variant: str = 'scf'):
         super().__init__(inst, activations, linear_relax)
-        self.name = 'SCF'
+        assert variant in ['scf', 'scf_cuts_2', 'scf_cuts_3', 'scf_sep_cuts'], f'Invalid variant: {variant}'
+        self.name = variant
 
         self.f = {}     # keys are (i,j) and values are the flow i->j
         self.x = {}     # keys are (i,j) and is 1 if edge (i,j) is used (has flow > 0)
         self.y = {}     # keys are (i) and is 1 if node i is visited
         self.z = None
+
+        if variant in ['scf', 'scf_sep_cuts']:
+            activations['cutset'] = False
+            if variant == 'scf_sep_cuts':
+                self.callback = create_callback()
+                self.solver.Params.lazyConstraints = 1
+        else:
+            activations['cutset'] = True
 
     def define_variables(self):
         var_type = gp.GRB.CONTINUOUS if self.linear_relax else gp.GRB.BINARY
@@ -24,6 +35,10 @@ class SCFFormulation(Formulation):
                 self.x[i, j] = self.solver.addVar(
                     vtype=var_type, name=f'x_{i}_{j}', lb=0, ub=1)
         self.z = self.solver.addVar(vtype=gp.GRB.CONTINUOUS, name='z', lb=0, ub=1)
+
+        if self.name == 'scf_sep_cuts':
+            self.solver._x = self.x
+            self.solver._y = self.y
 
     def constraint_define_obj(self):
         for c in self.instance.C:
@@ -93,6 +108,25 @@ class SCFFormulation(Formulation):
                 name=f'not_stay_{i}'
             )
 
+    def constraint_cutset(self):
+        # Use itertools to find all subsets of N
+        if self.name == 'scf_cuts_3':
+            max_size = 3
+        elif self.name == 'scf_cuts_2':
+            max_size = 2
+        else:
+            raise ValueError(f'Applying cutset constraints to {self.name} is not allowed')
+        subsets = []
+        for i in range(1, max_size + 1):
+            subsets.extend(itertools.combinations(self.instance.N, i))
+        for subset in subsets:
+            for h in subset:
+                delta = {(i, j) for (i, j) in self.x.keys() if i in subset and j not in subset}
+                self.solver.addConstr(
+                    gp.quicksum(self.x[i, j] for (i, j) in delta) >= self.y[h],
+                    name=f'cutset_{subset}_{h}'
+                )
+
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'
         prefix = 'constraint_'
@@ -119,3 +153,43 @@ class SCFFormulation(Formulation):
                         break
             k += 1
         return Solution(self.instance, x, self.solver.objVal)
+
+
+def find_min_cut(x, y):
+    g = nx.DiGraph()
+    g.add_weighted_edges_from([(i, j, value) for (i, j), value in x.items()])
+    N = set(g.nodes)
+    for i in N - {0}:
+        flow = nx.maximum_flow_value(g, 0, i, capacity='weight')
+        if flow < y[i] - 0.5:
+            val, partition = nx.minimum_cut(g, 0, i, capacity='weight')
+            outgoing_edges = [
+                (i, j) for i, j in g.edges if i in partition[0] and j in partition[1]
+            ]
+            return outgoing_edges, i
+
+
+def add_cutset_constraint(model: gp.Model, where):
+    if where == gp.GRB.Callback.MIPNODE and model.cbGet(gp.GRB.Callback.MIPNODE_STATUS) == gp.GRB.OPTIMAL:
+        x = model.cbGetNodeRel(model._x)
+        y = model.cbGetNodeRel(model._y)
+        add_cut_to_formulation(model, x, y)
+
+
+def create_callback():
+    def partial_func(model, where):
+        add_cutset_constraint(model, where)
+    return partial_func
+
+
+def add_cut_to_formulation(model: gp.Model, x, y):
+    res = find_min_cut(x, y)
+    if res is None:
+        return
+    outgoing_edges, node = find_min_cut(x, y)
+    model._num_lazy_constraints_added += 1
+    model.cbLazy(
+        gp.quicksum(
+            model._x[i, j] for i, j in outgoing_edges
+        ) >= model._y[node]
+    )
