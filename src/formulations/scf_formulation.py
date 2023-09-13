@@ -2,13 +2,15 @@ import gurobipy as gp
 import itertools
 import networkx as nx
 
+from src.greedy_heuristic import GreedyHeuristic
 from src.utils import Formulation, Instance, Solution
 
 
 class SCFFormulation(Formulation):
     def __init__(self, inst: Instance, activations: dict = None, linear_relax: bool = False, variant: str = 'scf'):
         super().__init__(inst, activations, linear_relax)
-        assert variant in ['scf', 'scf_cuts_2', 'scf_cuts_3', 'scf_sep_cuts'], f'Invalid variant: {variant}'
+        assert variant in ['scf', 'scf_cuts_2', 'scf_cuts_3', 'scf_sep_cuts', 'scf_start', 'scf_cuts_2_start'], \
+            f'Invalid variant: {variant}'
         self.name = variant
 
         self.f = {}     # keys are (i,j) and values are the flow i->j
@@ -16,13 +18,14 @@ class SCFFormulation(Formulation):
         self.y = {}     # keys are (i) and is 1 if node i is visited
         self.z = None
 
-        if variant in ['scf', 'scf_sep_cuts']:
-            activations['cutset'] = False
-            if variant == 'scf_sep_cuts':
-                self.callback = create_callback()
-                self.solver.Params.lazyConstraints = 1
-        else:
+        if 'scf_cuts_' in self.name:
             activations['cutset'] = True
+        else:
+            activations['cutset'] = False
+
+        if self.name == 'scf_sep_cuts':
+            self.callback = create_callback()
+            self.solver.Params.lazyConstraints = 1
 
     def define_variables(self):
         var_type = gp.GRB.CONTINUOUS if self.linear_relax else gp.GRB.BINARY
@@ -39,6 +42,34 @@ class SCFFormulation(Formulation):
         if self.name == 'scf_sep_cuts':
             self.solver._x = self.x
             self.solver._y = self.y
+
+        if 'start' in self.name:
+            gh = GreedyHeuristic(self.instance)
+            start = gh.run_heuristics(time_limit=30, n_solutions=1)[0]
+            self._set_initial_solution(start)
+
+    def _set_initial_solution(self, start: Solution):
+        y = {i: sum(start.y[i, k] for k in self.instance.K) for i in self.instance.N}
+        x = {(i, j): sum(start.x[i, j, k] for k in self.instance.K)
+             for i in self.instance.N_0 for j in self.instance.N_0}
+        f = {(i, j): 0 for i in self.instance.N_0 for j in self.instance.N_0}
+        routes = {k: start.routes[k][0] for k in self.instance.K}
+        for k, route in routes.items():
+            route = route[::-1]
+            total_t = 0
+            for j, i in zip(route[:-1], route[1:]):
+                assert x[i, j] == 1, f'Edge ({i}, {j}) is not used in any route'
+                f[i, j] = self.instance.t[i, j] + total_t
+                total_t += self.instance.t[i, j]
+
+        # Set start solution
+        for i in self.instance.N:
+            self.y[i].Start = y[i]
+        for i in self.instance.N_0:
+            for j in self.instance.N_0:
+                self.x[i, j].Start = x[i, j]
+                self.f[i, j].Start = f[i, j]
+        self.z.Start = start.obj
 
     def constraint_define_obj(self):
         for c in self.instance.C:
@@ -112,7 +143,7 @@ class SCFFormulation(Formulation):
         # Use itertools to find all subsets of N
         if self.name == 'scf_cuts_3':
             max_size = 3
-        elif self.name == 'scf_cuts_2':
+        elif 'scf_cuts_2' in self.name:
             max_size = 2
         else:
             raise ValueError(f'Applying cutset constraints to {self.name} is not allowed')

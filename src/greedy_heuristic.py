@@ -27,10 +27,9 @@ class GreedyHeuristic:
         seed: Random seed.
     """
 
-    def __init__(self, instance: Instance, config: Config, seed: int = 42):
+    def __init__(self, instance: Instance, seed: int = 42):
         random.seed(seed)
         self._instance = instance
-        self._config = config
 
         # By default, only the third selection step contains randomness
         self._active_selection_randomness = {'sel_1': 0, 'sel_2': 0, 'sel_3': 1, 'sel_4': 0}
@@ -95,12 +94,8 @@ class GreedyHeuristic:
             random.seed(seed)
         if randomness:
             self.randomness = randomness
-        routes = {
-            k: [0] for k in self._instance.K
-        }
-        route_durations = {
-            k: 0 for k in self._instance.K
-        }
+        routes = {k: [0] for k in self._instance.K}
+        route_durations = {k: 0 for k in self._instance.K}
         visited = {0}
 
         # SELECTION 1
@@ -117,6 +112,8 @@ class GreedyHeuristic:
                                  self.randomness * random.uniform(-1, 1) * self._average_distance_matrix[c]
             closest_node = min({i for i in self._instance.N if self._instance.alpha[i, c] and i not in visited},
                                key=sort_key)
+            if self._instance.t[0, closest_node] * 2 > self._instance.T_max:
+                closest_node = min({i for i in self._instance.N if not i in visited}, key=sort_key)
             self.add_i_to_route_of_k(closest_node, k, route_durations, routes, visited)
 
         while self._iterative_improvement(routes, route_durations, visited):
@@ -193,7 +190,7 @@ class GreedyHeuristic:
             return False
 
         # Find the insertion cost: distance to the closest node in some partial route 'end'.
-        # Also, save the route (k) where the insertion would be done.
+        # Additionally, save the route (k) where the insertion would be done.
         insertion_costs = {i: (
             min(self._instance.t[i, routes[k][-1]] for k in self._instance.K),
             min(self._instance.K, key=lambda k: self._instance.t[i, routes[k][-1]])
@@ -245,14 +242,14 @@ class GreedyHeuristic:
             List[Solution]: List of feasible solutions.
         """
         start = time.time()
-        print('Running heuristics to find feasible solutions.')
-        spaces = {
+        print('\nRunning heuristics to find feasible solutions.')
+        spaces = [
             (np.linspace(0, 2, 75), {'sel_1': 0, 'sel_2': 0, 'sel_3': 1, 'sel_4': 0}),
             (np.linspace(0, 2, 20)[1:], {'sel_1': 1, 'sel_2': 0, 'sel_3': 1, 'sel_4': 0}),
             (np.linspace(0, 2, 20)[1:], {'sel_1': 1, 'sel_2': 1, 'sel_3': 1, 'sel_4': 1}),
             (np.linspace(0, 2, 20)[1:], {'sel_1': 1, 'sel_2': 0, 'sel_3': 1, 'sel_4': 1}),
             (np.linspace(0, 4, 1000)[1:], {'sel_1': 1, 'sel_2': 1, 'sel_3': 1, 'sel_4': 1}),
-        }
+        ]
         solutions = []
         for i, (randomness, active_selection_randomness) in enumerate(spaces):
             print(f' -- Running batch {i + 1}')
@@ -263,37 +260,35 @@ class GreedyHeuristic:
                 sol = self.build_solution(r, seed=int(r * 1000))
                 solutions.append((sol, sol.obj))
 
-        print(f'{len(solutions)} were explored')
+        print(f'{len(solutions)} randomized GH solutions were explored.')
         solutions = sorted(solutions, key=lambda x: x[1], reverse=True)
         solutions = list(dict.fromkeys(solutions))[0:n_solutions]
         solutions = [sol[0] for sol in solutions]
+        print(f'Best heuristic solution: {round(solutions[0].obj, 3)}\n')
 
         return solutions
 
 
-if __name__ == '__main__':
+def test_gh():
+    global obj
     config = Config()
     assert config.instance_type == 'large', 'Check config settings. Need type = large'
     instance_loader = InstanceLoader(config)
     instances = instance_loader.load_instances(id_indices=False)
-
     results = {}
-    for instance_name, instance in list(instances.items())[:]:
-        print(f'\nInstance: {instance_name}\n')
+    for instance_name, instance in list(instances.items()):
+        print(f'\nInstance: {instance_name}')
 
         Z_TS = instance.instance_results['Z_TS']
         Z_GH = Z_TS / (1 + instance.instance_results['ts_vs_gh_gap'] / 100)
-        greedy_heuristic = GreedyHeuristic(instance, config)
+        greedy_heuristic = GreedyHeuristic(instance)
         det_sol = greedy_heuristic.build_solution(0)
-        solutions = greedy_heuristic.run_heuristics(5)
-
-        # Select the solution with the highest objective
+        solutions = greedy_heuristic.run_heuristics(30, 1)
         solution = solutions[0]
 
         results[instance_name] = (Z_TS, Z_GH, solution.obj, det_sol.obj)
         print(f'Z_TS = {Z_TS}, Z_GH = {round(Z_GH, 3)}, '
               f'Z_x = {round(solution.obj, 3)}, Z_det = {round(det_sol.obj, 3)}')
-
     n_better, n_worse, beat_TS, random_wins_det, gap, gap_ts = 0, 0, 0, 0, 0, 0
     for instance_name, (Z_TS, Z_GH, obj, det_obj) in results.items():
         gap += (obj - Z_GH) / Z_GH if Z_GH > 0 else 0
@@ -306,10 +301,13 @@ if __name__ == '__main__':
             beat_TS += 1
         if obj > det_obj:
             random_wins_det += 1
-    print('----------------------------')
-    print(f'Z_GH > Z_x: {n_worse} times')
-    print(f'Z_GH <= Z_x: {n_better} times')
-    print(f'Z_TS <= Z_x: {beat_TS} times')
-    print(f'Z_x > Z_det: {random_wins_det} times')
+    print('----------- Results --------------')
+    print(f'Z_GH > Z_x: {n_worse} / {len(results)} times')
+    print(f'Z_TS <= Z_x: {beat_TS} / {len(results)} times')
+    print(f'Z_x > Z_det: {random_wins_det} / {len(results)} times')
     print(f'AVG gap (Z_x - Z_GH) / Z_GH %: {round(100 * gap / len(results), 3)}')
     print(f'AVG gap (Z_x - Z_TS) / Z_TS %: {round(100 * gap_ts / len(results), 3)}')
+
+
+if __name__ == '__main__':
+    test_gh()
