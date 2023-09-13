@@ -1,6 +1,14 @@
-# Exact methods for the SARP problem: Selective Assessmment Routing Problem
+# Exact methods for the SARP problem: Selective Assessment Routing Problem
 
-This repository contains the implementation of the formulations and algorithms proposed in the research project **Exact methods for the SARP problem**. The following is the abstract of the project.
+This repository contains the implementation of the formulations and algorithms proposed in the research project **Exact methods for the SARP problem**. 
+
+This repository is accompanied by the theoretical work available on the link below (preliminary version, expected to be finished by December 2023). Our main finding is that the proposed Single Commodity Flow formulation is theoretically stronger than the current best MTZ-3 formulation by B. Balcik.
+- [Exact Methods for SARP.pdf](https://github.com/jsalva9/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/Exact%20Methods%20for%20SARP.pdf)
+
+The results on the literature benchmark instances obtained so far outperform in many cases the specialized state-of-the-art algorithms for SARP. All the results are available here:
+- [Results on 112 benchmark instances](https://github.com/jsalva9/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/all_results.csv)
+
+The following is the abstract of the project.
 
 ### Abstract
 In the immediate aftermath of a disaster, relief agencies perform rapid needs assessments to investigate the effects of the disaster on the affected 
