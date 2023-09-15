@@ -59,6 +59,7 @@ def big_experiment():
 
     # ids = [1, 27, 11, 7, 14, 15, 23, 24] + [49, 58, 63, 69]
     ids = list(range(1, 97))
+    # ids = [60, 66, 77, 79, 82, 84]  # Fast ids
     form_names = ['scf_cuts_2_start']
 
     all_executions = {(instance_id, form_name) for instance_id in ids for form_name in form_names}
