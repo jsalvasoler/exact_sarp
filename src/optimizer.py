@@ -96,7 +96,7 @@ class Optimizer:
             'timestamp': timestamp,
         }
         instance_results = self.formulation.instance.instance_results \
-            if self.config.instance_type == 'large' else {field: None for field in FIELDS_INSTANCE_RESULTS}
+            if self.config.instance_type != 'small' else {field: None for field in FIELDS_INSTANCE_RESULTS}
 
         results = {**results, **instance_results}
 
