@@ -8,6 +8,14 @@ import matplotlib.pyplot as plt
 
 
 class Instance:
+    """
+    This class represents an instance of the problem. It describes the problem network and the characteristics of the
+    sites. It also contains the optimal value of the instance (for small instances), and the results of the original
+    paper on the instance (for large and case instances). If t (the travel times) or alpha (the characteristics) are
+    not provided, they are randomly generated, and the seed can be provided to reproduce the instance.
+
+    The attributes are simply the instance parameters, and the same notation as the formulations is used for the sets.
+    """
     def __init__(self, N_size, K_size, T_max, C_size, t=None, alpha=None, seed=None, full_name=None,
                  instance_results: dict = None):
         self.name = None if full_name is None else full_name[3:-4]
@@ -60,6 +68,9 @@ class Instance:
                 pass
 
     def print(self):
+        """
+        Print basic instance information
+        """
         print(f'N = {len(self.N)} (sites)')
         print(f'K = {len(self.K)} (vehicles)')
         print(f'T_max = {self.T_max} (max time)')
@@ -94,6 +105,19 @@ class Instance:
 
 
 class Formulation(ABC):
+    """
+    This class represents a formulation of the problem. It is an abstract class, and must be implemented by the
+    different formulations of the problem.
+
+    Attributes:
+        instance: instance of the problem.
+        activations: dictionary of activations of the formulation. If a constraint is not in the dictionary, it is
+            considered active.
+        linear_relax: if True, the formulation is solved as a linear relaxation.
+        solver: solver used to solve the formulation. Instance of gurobipy.Model.
+        constraints: dictionary of constraints of the formulation.
+        callback: callback function used to add lazy constraints to the formulation.
+    """
     def __init__(self, instance: Instance, activations: Dict[str, bool] = None, linear_relax: bool = False):
         self.instance = instance
         self.activations = activations if activations is not None else {}
@@ -162,6 +186,16 @@ class Solution:
     This class represents a solution of a formulation.
     A solution of the problem is represented with the set of binary variables x[i, j, k] = 1 if the vehicle k
     travels from i to j.
+
+    Attributes:
+        inst: instance of the problem.
+        x: dictionary of edge variables.
+        obj: objective value of the solution.
+        y: dictionary of site variables.
+        coverage_ratios: dictionary of coverage ratios of the solution.
+        Wp: duration of the routes of the solution.
+        m: number of nodes visited by the solution.
+        routes: dictionary of routes of the solution.
     """
 
     def __init__(self, inst: Instance, x: Dict[Tuple[int, int, int], int], obj: float):

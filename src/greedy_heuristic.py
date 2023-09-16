@@ -270,6 +270,10 @@ class GreedyHeuristic:
 
 
 def test_gh():
+    """
+    Test the greedy heuristic on the large instances. The heuristic is run 30 seconds for each instance, and the best
+    solution is returned. The results are compared to the results of the TS algorithm and the GH reported in the paper.
+    """
     global obj
     config = Config()
     assert config.instance_type == 'large', 'Check config settings. Need type = large'

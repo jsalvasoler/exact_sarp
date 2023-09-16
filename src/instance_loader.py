@@ -7,6 +7,17 @@ from src.utils import Instance, FIELDS_INSTANCE_RESULTS
 
 
 class InstanceLoader:
+    """
+    This class is responsible for loading the type of instances defined in the config file. If there are filters on
+    the number of instances, it will also apply them.
+
+    Attributes:
+        __config: The config object
+        __instance_dir: The directory where the instances are stored
+        __optimal_solutions_small: The optimal solutions for the small instances
+        __original_results_large: The original results for the large instances
+        __original_results_case: The original results for the case instances
+    """
     def __init__(self, config: Config):
         self.__config = config
         self.__instance_dir = os.path.join(self.__config.data_dir, self.__config.instance_type)
@@ -18,7 +29,13 @@ class InstanceLoader:
         self.__original_results_case = self.read_original_results_case() \
             if self.__config.instance_type == 'case' else None
 
-    def read_optimal_solutions_small(self):
+    def read_optimal_solutions_small(self) -> Dict[str, float]:
+        """
+        Read the optimal solutions for the small instances from the file
+
+        Returns:
+            Dict[str, float]: The optimal solutions
+        """
         with open(self.__config.optimal_solutions_file, 'r') as f:
             lines = f.readlines()
             optimal_solutions = {}
@@ -29,13 +46,35 @@ class InstanceLoader:
                 optimal_solutions[inst_id] = value
         return optimal_solutions
 
-    def read_original_results_large(self):
+    def read_original_results_large(self) -> pd.DataFrame:
+        """
+        Read the original results for the large instances from the file
+
+        Returns:
+            pd.DataFrame: The original results
+        """
         return pd.read_csv(self.__config.large_original_results_file, sep=';', decimal=',')
 
-    def read_original_results_case(self):
+    def read_original_results_case(self) -> pd.DataFrame:
+        """
+        Read the original results for the case instances from the file
+
+        Returns:
+            pd.DataFrame: The original results
+        """
         return pd.read_csv(self.__config.case_original_results_file, sep=';', decimal=',')
 
     def load_instances(self, id_indices: bool = True) -> Dict[str, Instance]:
+        """
+        Load the instances from the directory. If id_indices is True, the keys of the dictionary will also be ids.
+        Otherwise, the keys will be the only instance names.
+
+        Args:
+            id_indices: Whether to use include ids as keys or not
+
+        Returns:
+            Dict[str, Instance]: The instances
+        """
         # List all instances in the directory
         instance_names = os.listdir(self.__instance_dir)
 
@@ -59,7 +98,17 @@ class InstanceLoader:
 
         return instances
 
-    def __load_instance(self, instance_file):
+    def __load_instance(self, instance_file: str) -> Instance:
+        """
+        Load a single instance from the file. It implements the different logic for the three instance types (small,
+        large, case).
+
+        Args:
+            instance_file: The name of the instance file to load
+
+        Returns:
+            Instance: The instance object
+        """
         instance_path = os.path.join(self.__instance_dir, instance_file)
         with open(instance_path, 'r') as f:
             lines = f.readlines()
@@ -107,7 +156,18 @@ class InstanceLoader:
         return Instance(N_size, K_size, T_max, C_size, t, alpha, full_name=instance_file,
                         instance_results=instance_results)
 
-    def get_instance_results_for_case(self, instance_file, C_size, K_size):
+    def get_instance_results_for_case(self, instance_file, C_size, K_size) -> Dict[str, float]:
+        """
+        Get the instance results for the particular instance from the case results dataframe
+
+        Args:
+            instance_file: name of the instance file
+            C_size: number of characteristics
+            K_size: number of vehicles
+
+        Returns:
+            Dict[str, float]: The instance results
+        """
         T_max = int(instance_file.split('T')[1][:-4])
         df_row = self.__original_results_case.loc[
             (self.__original_results_case['C_size'] == C_size) &
@@ -119,7 +179,19 @@ class InstanceLoader:
         # Convert to dict and return
         return df_row.to_dict(orient='records')[0]
 
-    def get_instance_results_for_large(self, instance_file, N_size, K_size, T_max):
+    def get_instance_results_for_large(self, instance_file, N_size, K_size, T_max) -> Dict[str, float]:
+        """
+        Get the instance results for the particular instance from the large results dataframe
+
+        Args:
+            instance_file: name of the instance file
+            N_size: number of nodes
+            K_size: number of vehicles
+            T_max: maximum route duration
+
+        Returns:
+            Dict[str, float]: The instance results
+        """
         network_type = 'RC' if 'RC' in instance_file else 'R'
         df_row = self.__original_results_large.loc[
             (self.__original_results_large['network_type'] == network_type) &
