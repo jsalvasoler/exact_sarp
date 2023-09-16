@@ -1,5 +1,5 @@
 from src.config import Config
-from utils import Formulation, Solution, FIELDS_INSTANCE_RESULTS_LARGE
+from utils import Formulation, Solution, FIELDS_INSTANCE_RESULTS
 import gurobipy as gp
 import pandas as pd
 from datetime import datetime
@@ -7,14 +7,34 @@ import warnings
 
 
 class Optimizer:
+    """
+    This class is responsible for running the optimization process for a given formulation and configuration.
+    It receives a formulation (which contains the instance) and solves it.
+
+    Attributes:
+        formulation: The formulation to be solved
+        solver: The solver object. It is a Gurobi model.
+        config: The configuration object
+
+    """
     def __init__(self, formulation: Formulation, config: Config):
         self.formulation = formulation
         self.solver = formulation.solver
         self.config = config
         self.solver.setParam('TimeLimit', self.config.time_limit * 60)
         self.solver.setParam('Threads', 12)
+        # self.solver.setParam('Heuristics', 0.95)
 
     def run(self):
+        """
+        Run the optimization process.
+            1.  Formulates the model by calling the methods implemented in the formulation class.
+            2.  Optimizes the model.
+            3.  Depending on the status of the solver:
+                3.1. If the status is optimal, the solution is built and saved. It can also be printed and drawn.
+                3.2. If the status is infeasible, the infeasibility analysis is performed.
+                3.3. If the status is anything else, an error is raised.
+        """
         self.formulation.formulate()
         self.solver.optimize(self.formulation.callback)
         print(f'Solve time: {self.solver.Runtime} seconds')
@@ -39,6 +59,13 @@ class Optimizer:
             raise ValueError(f'Unexpected solver status: {self.solver.status}')
 
     def save_results(self, solution: Solution):
+        """
+        Save the results of the optimization process to a csv file (config.results_filepath). If it can't be saved,
+        (excel might be open), it saves it with a timestamp.
+
+        Args:
+            solution: Solution object containing the results of the optimization process.
+        """
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         results = {
             'name': self.formulation.instance.name,
@@ -69,7 +96,7 @@ class Optimizer:
             'timestamp': timestamp,
         }
         instance_results = self.formulation.instance.instance_results \
-            if self.config.instance_type == 'large' else {field: None for field in FIELDS_INSTANCE_RESULTS_LARGE}
+            if self.config.instance_type == 'large' else {field: None for field in FIELDS_INSTANCE_RESULTS}
 
         results = {**results, **instance_results}
 
@@ -86,6 +113,9 @@ class Optimizer:
             results_df.to_csv(f'results_{timestamp}.csv', index=False, sep=';', decimal=',')
 
     def infeasibility_analysis(self):
+        """
+        Perform the infeasibility analysis using Gurobi IIS method. It prints the minimum model that is infeasible.
+        """
         warnings.warn('Model is infeasible. Performing infeasibility analysis.')
         self.solver.computeIIS()
         for c in self.solver.getConstrs():

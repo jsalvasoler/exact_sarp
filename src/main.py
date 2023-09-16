@@ -23,7 +23,8 @@ def main():
     instances = instance_loader.load_instances(id_indices=False)
 
     for i, (name, instance) in enumerate(instances.items()):
-        print(f'\nInstance {i + 1}/{len(instances)}: \n  id = {name[:2]}, name = {name[3:-4]}\n\n')
+        print(f'\nInstance {i + 1}/{len(instances)}: \n  id = {name[:2]}, name = {name[3:-4]}\n')
+        print(f' -- Instance information: {instance.instance_results}\n\n')
         instance.print()
 
         formulation = define_formulation(config, instance)
@@ -53,12 +54,13 @@ def big_experiment():
     # Find instances + formulations that have already been solved
     # That means either the solve_time is greater than the time_limit or the mip_gap is zero + tolerance
     solved = results.loc[
-        (results['type'] == 'large') &
+        (results['type'] == 'case') &
         ((results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6))
         , ['id', 'formulation']].values
 
     # ids = [1, 27, 11, 7, 14, 15, 23, 24] + [49, 58, 63, 69]
-    ids = list(range(1, 97))
+    ids = list(range(1, 24))
+    # ids = [60, 66, 77, 79, 82, 84]  # Fast ids
     form_names = ['scf_cuts_2_start']
 
     all_executions = {(instance_id, form_name) for instance_id in ids for form_name in form_names}
