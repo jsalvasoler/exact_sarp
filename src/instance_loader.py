@@ -3,7 +3,7 @@ import random
 import pandas as pd
 from typing import List, Dict
 from src.config import Config
-from src.utils import Instance, FIELDS_INSTANCE_RESULTS_LARGE
+from src.utils import Instance, FIELDS_INSTANCE_RESULTS
 
 
 class InstanceLoader:
@@ -11,8 +11,12 @@ class InstanceLoader:
         self.__config = config
         self.__instance_dir = os.path.join(self.__config.data_dir, self.__config.instance_type)
 
-        self.__optimal_solutions_small = self.read_optimal_solutions_small()
-        self.__original_results_large = self.read_original_results_large()
+        self.__optimal_solutions_small = self.read_optimal_solutions_small() \
+            if self.__config.instance_type == 'small' else None
+        self.__original_results_large = self.read_original_results_large() \
+            if self.__config.instance_type == 'large' else None
+        self.__original_results_case = self.read_original_results_case() \
+            if self.__config.instance_type == 'case' else None
 
     def read_optimal_solutions_small(self):
         with open(self.__config.optimal_solutions_file, 'r') as f:
@@ -26,7 +30,10 @@ class InstanceLoader:
         return optimal_solutions
 
     def read_original_results_large(self):
-        return pd.read_csv(self.__config.original_results_file, sep=';', decimal=',')
+        return pd.read_csv(self.__config.large_original_results_file, sep=';', decimal=',')
+
+    def read_original_results_case(self):
+        return pd.read_csv(self.__config.case_original_results_file, sep=';', decimal=',')
 
     def load_instances(self, id_indices: bool = True) -> Dict[str, Instance]:
         # List all instances in the directory
@@ -57,29 +64,35 @@ class InstanceLoader:
         with open(instance_path, 'r') as f:
             lines = f.readlines()
 
-            T_max = int(lines[0])
-            factor = int(lines[1])
-            K_size = int(lines[2])
-            N_size = int(lines[3])
-            C_size = int(lines[4])
+            if self.__config.instance_type in ['small', 'large']:
 
-            node_info = [tuple(map(int, line.split())) for line in lines[5:5 + N_size + 1]]
-            coordinates = {i: (x[0], x[1]) for i, x in enumerate(node_info)}
+                T_max = int(lines[0])
+                factor = int(lines[1])
+                K_size = int(lines[2])
+                N_size = int(lines[3])
+                C_size = int(lines[4])
 
-        def euclidean_dist(i, j):
-            return ((coordinates[i][0] - coordinates[j][0]) ** 2 +
-                    (coordinates[i][1] - coordinates[j][1]) ** 2) ** 0.5
+                node_info = [tuple(map(int, line.split())) for line in lines[5:5 + N_size + 1]]
+                coordinates = {i: (x[0], x[1]) for i, x in enumerate(node_info)}
 
-        t = {(i, j): euclidean_dist(i, j) / factor
-             for i in coordinates.keys()
-             for j in coordinates.keys()
-             }
+                def euclidean_dist(i, j):
+                    return ((coordinates[i][0] - coordinates[j][0]) ** 2 +
+                            (coordinates[i][1] - coordinates[j][1]) ** 2) ** 0.5
 
-        alpha = {
-            (i + 1, c + 1): node_info[i + 1][2 + c]
-            for c in range(C_size)
-            for i in range(N_size)
-        }
+                t = {(i, j): euclidean_dist(i, j) / factor for i in coordinates.keys() for j in coordinates.keys()}
+                alpha = {(i + 1, c + 1): node_info[i + 1][2 + c] for c in range(C_size) for i in range(N_size)}
+
+            else:
+                T_max = int(lines[0])
+                K_size = int(lines[1])
+                N_size = int(lines[2])
+                C_size = int(lines[3])
+
+                node_info = [tuple(map(int, line.split())) for line in lines[4:4 + N_size + 1]]
+                travel_times = [tuple(map(int, line.split())) for line in lines[4 + N_size + 1:4 + 2 * (N_size + 1)]]
+
+                t = {(i, j): travel_times[i][j] for i in range(N_size + 1) for j in range(N_size + 1)}
+                alpha = {(i + 1, c + 1): node_info[i + 1][c] for c in range(C_size) for i in range(N_size)}
 
         if self.__config.instance_type == 'small':
             instance_results = {
@@ -88,11 +101,23 @@ class InstanceLoader:
             }
         elif self.__config.instance_type == 'large':
             instance_results = self.get_instance_results_for_large(instance_file, N_size, K_size, T_max)
-        else:
-            raise NotImplementedError('Case study is not implemented yet')
+        else:       # case
+            instance_results = self.get_instance_results_for_case(instance_file, C_size, K_size)
 
         return Instance(N_size, K_size, T_max, C_size, t, alpha, full_name=instance_file,
                         instance_results=instance_results)
+
+    def get_instance_results_for_case(self, instance_file, C_size, K_size):
+        T_max = int(instance_file.split('T')[1][:-4])
+        df_row = self.__original_results_case.loc[
+            (self.__original_results_case['C_size'] == C_size) &
+            (self.__original_results_case['T_max'] == T_max) &
+            (self.__original_results_case['K_size'] == K_size),
+            FIELDS_INSTANCE_RESULTS]
+        assert len(df_row) == 1, 'Error in extracting instance results'
+
+        # Convert to dict and return
+        return df_row.to_dict(orient='records')[0]
 
     def get_instance_results_for_large(self, instance_file, N_size, K_size, T_max):
         network_type = 'RC' if 'RC' in instance_file else 'R'
@@ -101,7 +126,7 @@ class InstanceLoader:
             (self.__original_results_large['nodes'] == N_size) &
             (self.__original_results_large['T_max'] == T_max) &
             (self.__original_results_large['K_size'] == K_size),
-            FIELDS_INSTANCE_RESULTS_LARGE]
+            FIELDS_INSTANCE_RESULTS]
         assert len(df_row) == 1, 'Error in extracting instance results'
 
         # Convert to dict and return

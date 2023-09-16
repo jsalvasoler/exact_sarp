@@ -69,8 +69,12 @@ class Config:
         return os.path.join(self.__root, 'data', 'optimal_solutions_small.txt')
 
     @property
-    def original_results_file(self):
+    def large_original_results_file(self):
         return os.path.join(self.__root, 'data', 'large_instances_original_results.csv')
+
+    @property
+    def case_original_results_file(self):
+        return os.path.join(self.__root, 'data', 'case_instances_original_results.csv')
 
     @property
     def seed(self):

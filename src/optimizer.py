@@ -1,5 +1,5 @@
 from src.config import Config
-from utils import Formulation, Solution, FIELDS_INSTANCE_RESULTS_LARGE
+from utils import Formulation, Solution, FIELDS_INSTANCE_RESULTS
 import gurobipy as gp
 import pandas as pd
 from datetime import datetime
@@ -70,7 +70,7 @@ class Optimizer:
             'timestamp': timestamp,
         }
         instance_results = self.formulation.instance.instance_results \
-            if self.config.instance_type == 'large' else {field: None for field in FIELDS_INSTANCE_RESULTS_LARGE}
+            if self.config.instance_type == 'large' else {field: None for field in FIELDS_INSTANCE_RESULTS}
 
         results = {**results, **instance_results}
 
