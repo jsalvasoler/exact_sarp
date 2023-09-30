@@ -58,13 +58,15 @@ def big_experiment():
         ((results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6))
         , ['id', 'formulation']].values
 
-    # ids = [1, 27, 11, 7, 14, 15, 23, 24] + [49, 58, 63, 69]
-    ids = list(range(1, 24))
+    ids = [22, 40, 23, 28, 36, 39, 21, 24, 26, 29, 27, 79, 82, 64, 80, 85, 88, 65, 67, 70, 81, 84, 86, 89, 91,
+           94, 66, 68, 71, 76, 87, 90, 92, 95, 69, 72, 93, 96, 74, 51, 54, 75, 78]
+    # ids = list(range(1, 24))
     # ids = [60, 66, 77, 79, 82, 84]  # Fast ids
-    form_names = ['scf_cuts_2_start']
+    form_names = ['mtz_opt']
 
     all_executions = {(instance_id, form_name) for instance_id in ids for form_name in form_names}
-    to_execute = sorted(list(all_executions - set(map(tuple, solved))), key=lambda x: x[0])
+    # to_execute = sorted(list(all_executions - set(map(tuple, solved))), key=lambda x: x[0])
+    to_execute = sorted(list(all_executions), key=lambda x: x[0])
     print(f'All executions: {sorted(all_executions)}')
     print(f'To execute: {to_execute}')
 
