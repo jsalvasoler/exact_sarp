@@ -4,3 +4,9 @@ config.yaml
 readme.md
 *.iml
 *.xml
+
+
+# Virtual env common names
+my_env/
+exact_sarp_env/
+venv/

@@ -10,6 +10,16 @@ The results on the literature benchmark instances obtained so far outperform in 
 
 The following is the abstract of the project.
 
+### Install
+Create a virtual environment with python 3.10 and install the requirements.
+```bash
+python -m venv exact_sarp_env
+source exact_sarp_env/bin/activate
+pip install -r requirements.txt
+```
+The project uses the MIP solver Gurobi. You can get a free academic license [here](https://www.gurobi.com/academia/academic-program-and-licenses/).
+
+
 ### Abstract
 In the immediate aftermath of a disaster, relief agencies perform rapid needs assessments to investigate the effects of the disaster on the affected 
 communities. Since assessments must be performed quickly, visiting all of the sites in the affected region may not be possible. 
