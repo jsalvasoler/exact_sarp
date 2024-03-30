@@ -2,8 +2,8 @@ import os
 import random
 import pandas as pd
 from typing import List, Dict
-from src.config import Config
-from src.utils import Instance, FIELDS_INSTANCE_RESULTS
+from config import Config
+from utils import Instance, FIELDS_INSTANCE_RESULTS
 
 
 class InstanceLoader:

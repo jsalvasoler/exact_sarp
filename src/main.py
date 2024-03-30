@@ -184,8 +184,8 @@ def instance_difficulty_experiment():
 if __name__ == "__main__":
     profiler = Profiler()
     profiler.start()
-    # main()
-    big_experiment()
+    main()
+    # big_experiment()
     # instance_difficulty_experiment()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))

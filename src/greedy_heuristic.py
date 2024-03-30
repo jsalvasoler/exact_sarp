@@ -4,9 +4,9 @@ from typing import Tuple, List
 
 import numpy as np
 
-from src.instance_loader import InstanceLoader
-from src.utils import Instance, Solution
-from src.config import Config
+from instance_loader import InstanceLoader
+from utils import Instance, Solution
+from config import Config
 
 
 class GreedyHeuristic:
