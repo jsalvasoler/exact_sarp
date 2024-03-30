@@ -10,10 +10,10 @@ import pandas as pd
 from pyinstrument import Profiler
 
 formulations = {
-    'mtz': MTZFormulation,
-    'cutset': CutSetFormulation,
-    'scf': SCFFormulation,
-    'mtz_opt': MTZOptFormulation,
+    "mtz": MTZFormulation,
+    "cutset": CutSetFormulation,
+    "scf": SCFFormulation,
+    "mtz_opt": MTZOptFormulation,
 }
 
 
@@ -23,8 +23,10 @@ def main():
     instances = instance_loader.load_instances(id_indices=False)
 
     for i, (name, instance) in enumerate(instances.items()):
-        print(f'\nInstance {i + 1}/{len(instances)}: \n  id = {name[:2]}, name = {name[3:-4]}\n')
-        print(f' -- Instance information: {instance.instance_results}\n\n')
+        print(
+            f"\nInstance {i + 1}/{len(instances)}: \n  id = {name[:2]}, name = {name[3:-4]}\n"
+        )
+        print(f" -- Instance information: {instance.instance_results}\n\n")
         instance.print()
 
         formulation = define_formulation(config, instance)
@@ -33,52 +35,111 @@ def main():
 
 
 def define_formulation(config, instance):
-    if 'scf' in config.formulation:
-        formulation = formulations.get('scf')(
-            instance, config.activations.get(config.formulation, {}), variant=config.formulation)
+    if "scf" in config.formulation:
+        formulation = formulations.get("scf")(
+            instance,
+            config.activations.get(config.formulation, {}),
+            variant=config.formulation,
+        )
     else:
-        formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
+        formulation = formulations.get(config.formulation)(
+            instance, config.activations.get(config.formulation, {})
+        )
     return formulation
 
 
 def big_experiment():
     config = Config()
-    config.results_file = 'big_results.csv'
+    config.results_file = "big_results.csv"
 
-    assert config.n_instances_main is None and config.n_instances_big, \
-        'In big experiment, instance number is provided by n_instances_big'
-    assert config.time_limit == 60, 'Big experiment needs time_limit to be 60'
+    assert (
+        config.n_instances_main is None and config.n_instances_big
+    ), "In big experiment, instance number is provided by n_instances_big"
+    assert config.time_limit == 60, "Big experiment needs time_limit to be 60"
 
-    results = pd.read_csv(config.results_filepath, sep=';', decimal=',')
+    results = pd.read_csv(config.results_filepath, sep=";", decimal=",")
 
     # Find instances + formulations that have already been solved
     # That means either the solve_time is greater than the time_limit or the mip_gap is zero + tolerance
     solved = results.loc[
-        (results['type'] == 'case') &
-        ((results['solve_time'] >= config.time_limit * 60) | (results['mip_gap'].abs() < 1e-6))
-        , ['id', 'formulation']].values
+        (results["type"] == "case")
+        & (
+            (results["solve_time"] >= config.time_limit * 60)
+            | (results["mip_gap"].abs() < 1e-6)
+        ),
+        ["id", "formulation"],
+    ].values
 
-    ids = [22, 40, 23, 28, 36, 39, 21, 24, 26, 29, 27, 79, 82, 64, 80, 85, 88, 65, 67, 70, 81, 84, 86, 89, 91,
-           94, 66, 68, 71, 76, 87, 90, 92, 95, 69, 72, 93, 96, 74, 51, 54, 75, 78]
+    ids = [
+        22,
+        40,
+        23,
+        28,
+        36,
+        39,
+        21,
+        24,
+        26,
+        29,
+        27,
+        79,
+        82,
+        64,
+        80,
+        85,
+        88,
+        65,
+        67,
+        70,
+        81,
+        84,
+        86,
+        89,
+        91,
+        94,
+        66,
+        68,
+        71,
+        76,
+        87,
+        90,
+        92,
+        95,
+        69,
+        72,
+        93,
+        96,
+        74,
+        51,
+        54,
+        75,
+        78,
+    ]
     # ids = list(range(1, 24))
     # ids = [60, 66, 77, 79, 82, 84]  # Fast ids
-    form_names = ['mtz_opt']
+    form_names = ["mtz_opt"]
 
-    all_executions = {(instance_id, form_name) for instance_id in ids for form_name in form_names}
+    all_executions = {
+        (instance_id, form_name) for instance_id in ids for form_name in form_names
+    }
     # to_execute = sorted(list(all_executions - set(map(tuple, solved))), key=lambda x: x[0])
     to_execute = sorted(list(all_executions), key=lambda x: x[0])
-    print(f'All executions: {sorted(all_executions)}')
-    print(f'To execute: {to_execute}')
+    print(f"All executions: {sorted(all_executions)}")
+    print(f"To execute: {to_execute}")
 
     instance_loader = InstanceLoader(config)
     instances = instance_loader.load_instances()
 
-    for i, (instance_id, formulation_name) in enumerate(to_execute[:config.n_instances_big]):
+    for i, (instance_id, formulation_name) in enumerate(
+        to_execute[: config.n_instances_big]
+    ):
         config.set_formulation(formulation_name)
         instance = instances[instance_id]
-        print(f'\nInstance {i + 1}/{config.n_instances_big}: \n  '
-              f'id = {instance_id}, name = {instance.name}, formulation = {formulation_name}\n'
-              f'instance information: {instance.instance_results}\n\n')
+        print(
+            f"\nInstance {i + 1}/{config.n_instances_big}: \n  "
+            f"id = {instance_id}, name = {instance.name}, formulation = {formulation_name}\n"
+            f"instance information: {instance.instance_results}\n\n"
+        )
 
         formulation = define_formulation(config, instance)
         optimizer = Optimizer(formulation, config)
@@ -86,11 +147,13 @@ def big_experiment():
 
 
 def instance_difficulty_experiment():
-    instance_name, instance_id = 'large_RC50_K4T5', 42
+    instance_name, instance_id = "large_RC50_K4T5", 42
     # instance_name, instance_id = 'large_RC25_K2T3', 8
     config = Config()
-    assert config.instance_type == 'large' and config.formulation == 'scf', 'Check config settings. Need large + scf'
-    config.results_large = 'results_instance_diff.csv'
+    assert (
+        config.instance_type == "large" and config.formulation == "scf"
+    ), "Check config settings. Need large + scf"
+    config.results_large = "results_instance_diff.csv"
 
     instance_loader = InstanceLoader(config)
     instances = instance_loader.load_instances()
@@ -104,17 +167,21 @@ def instance_difficulty_experiment():
         instance.update_T_max(T_max)
         instance.update_K_size(K_size)
 
-        print(f'\nInstance {i + 1}/{len(to_execute)}: \n  T_max = {T_max}, K_size = {K_size}\n\n')
+        print(
+            f"\nInstance {i + 1}/{len(to_execute)}: \n  T_max = {T_max}, K_size = {K_size}\n\n"
+        )
         instance.print()
 
-        formulation = formulations.get(config.formulation)(instance, config.activations.get(config.formulation, {}))
+        formulation = formulations.get(config.formulation)(
+            instance, config.activations.get(config.formulation, {})
+        )
         optimizer = Optimizer(formulation, config)
         optimizer.run()
 
     return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     profiler = Profiler()
     profiler.start()
     # main()

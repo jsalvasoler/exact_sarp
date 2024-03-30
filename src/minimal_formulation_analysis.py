@@ -18,13 +18,23 @@ def minimal_formulation_analysis(formulation_name: str) -> None:
         formulation_name: name of the formulation to analyze.
     """
 
-    assert not config.n_instances_main, f'Cannot run minimal_formulation_analysis with n_instances != None'
+    assert (
+        not config.n_instances_main
+    ), f"Cannot run minimal_formulation_analysis with n_instances != None"
     instance_loader = InstanceLoader(config)
     all_instances = instance_loader.load_instances()
-    instance_names = ['small_R12hom_imp3_K3T2', 'small_R12hom_alt2_K2T2', 'small_RC12het_altimpinc3_K3T4',
-                      'small_R12het_altimpinc3_K2T3']
-    instances = [v for k, v in all_instances.items() if any(name in k for name in instance_names)]
-    assert len(instances) == len(instance_names), f'Something went wrong when filtering instances.'
+    instance_names = [
+        "small_R12hom_imp3_K3T2",
+        "small_R12hom_alt2_K2T2",
+        "small_RC12het_altimpinc3_K3T4",
+        "small_R12het_altimpinc3_K2T3",
+    ]
+    instances = [
+        v for k, v in all_instances.items() if any(name in k for name in instance_names)
+    ]
+    assert len(instances) == len(
+        instance_names
+    ), f"Something went wrong when filtering instances."
 
     # Get set of all constraints
     temp_formulation = formulations.get(formulation_name)(instances[0])
@@ -48,7 +58,9 @@ def minimal_formulation_analysis(formulation_name: str) -> None:
         current_constraints = eval(current_constraints)
 
         # Build the activations dictionary
-        activations = {c: True if c in current_constraints else False for c in all_constraints}
+        activations = {
+            c: True if c in current_constraints else False for c in all_constraints
+        }
 
         ans = []
         for constraint in current_constraints:
@@ -76,7 +88,9 @@ def minimal_formulation_analysis(formulation_name: str) -> None:
         # Retrieve activations
         activations = eval(activations)
 
-        assert config.exception_when_non_optimal, f'Cannot validate formulation without exception_when_non_optimal.'
+        assert (
+            config.exception_when_non_optimal
+        ), f"Cannot validate formulation without exception_when_non_optimal."
         for instance in instances:
             formulation = formulations.get(formulation_name)(instance, activations)
             optimizer = Optimizer(formulation, config)
@@ -91,19 +105,19 @@ def minimal_formulation_analysis(formulation_name: str) -> None:
     final_list = []
     for a in ans:
         final_list.append((len(eval(a)), eval(a)))
-    print(f'All constraints: \n  {len(all_constraints)}: {str(all_constraints)}')
-    print(f'Minimal sets:')
+    print(f"All constraints: \n  {len(all_constraints)}: {str(all_constraints)}")
+    print(f"Minimal sets:")
     for size, s in sorted(final_list):
-        print(f'  {size}: {str(s)}')
+        print(f"  {size}: {str(s)}")
 
     # Print the corresponding activations for the yaml file
     for i, a in enumerate(ans):
-        print(f'Minimal set {i}\n{formulation_name}:')
+        print(f"Minimal set {i}\n{formulation_name}:")
         for c in all_constraints:
             print(f'  {c}: {"true" if c in eval(a) else "false"}')
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     prof = Profiler()
     prof.start()
 
