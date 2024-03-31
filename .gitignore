@@ -10,3 +10,6 @@ readme.md
 my_env/
 exact_sarp_env/
 venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/

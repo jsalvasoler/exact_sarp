@@ -1,10 +1,10 @@
 from functools import cache
 from pyinstrument import Profiler
 
-from src.instance_loader import InstanceLoader
-from src.config import Config
-from src.optimizer import Optimizer
-from src.main import formulations
+from instance_loader import InstanceLoader
+from config import Config
+from optimizer import Optimizer
+from main import formulations
 from typing import Dict, Set, List
 
 

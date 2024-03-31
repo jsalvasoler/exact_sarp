@@ -1,4 +1,4 @@
-from src.config import Config
+from config import Config
 from utils import Formulation, Solution, FIELDS_INSTANCE_RESULTS
 import gurobipy as gp
 import pandas as pd

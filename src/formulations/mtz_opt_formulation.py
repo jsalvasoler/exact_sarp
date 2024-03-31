@@ -1,6 +1,6 @@
 import gurobipy as gp
 
-from src.utils import Formulation, Instance, Solution
+from utils import Formulation, Instance, Solution
 
 
 # noinspection DuplicatedCode

@@ -14,7 +14,13 @@ from config import Config
 
 class RLHeuristic:
     """
-    TODO: Add description
+    Reinforcement learning heuristic for the SARP. The heuristic is based on Q-learning. The setting
+    of the RL formulation is as follows:
+    - State: current node
+    - Action: next node to visit. Only non-visited and feasible nodes are considered.
+    - Reward: improvement of the coverage ratio if positive, otherwise negative travel time.
+    - Q matrix update: Q(s, a) = Q(s, a) + alpha * (reward + gamma * max(Q(s', a')) - Q(s, a))
+    
     """
 
     def __init__(
@@ -30,36 +36,6 @@ class RLHeuristic:
         self._n_episodes = n_episodes
         self._epsilon = epsilon
         self._step_size = 0.1
-
-    def _compute_average_distance_matrix(self):
-        """
-        Compute the average distance matrix. For each critical characteristic c \in C, we compute the average distance
-        between all nodes that carry the characteristic.
-
-        Returns:
-            dict: {characteristic: double}. Average distance matrix.
-        """
-        nodes_by_characteristic = {
-            c: {i for i in self._instance.N if self._instance.alpha[i, c]}
-            for c in self._instance.C
-        }
-
-        return {
-            c: self._average_distance(nodes)
-            for c, nodes in nodes_by_characteristic.items()
-        }
-
-    def _average_distance(self, nodes):
-        """
-        Compute the average distance between all nodes in the set nodes.
-        Args:
-            nodes: set of nodes.
-
-        Returns:
-            double: Average distance between all nodes in the set nodes.
-        """
-        pairs = {(i, j) for i in nodes for j in nodes if i < j}
-        return sum(self._instance.t[i, j] for i, j in pairs) / len(pairs)
 
     def _coverage_ratios(self, visited):
         """
@@ -95,7 +71,7 @@ class RLHeuristic:
         ma = np.convolve(ep_results, np.ones(250) / 250, mode="valid")
         plt.plot(ma, label="250-MA")
         plt.legend()
-        plt.title("Coverage ratio over episodes - instance " + self._instance.full_name)
+        plt.title("Coverage ratio over episodes - instance " + self._instance.name)
         plt.xlabel("Episode")
         plt.ylabel("Objective")
         plt.show()
@@ -142,7 +118,7 @@ class RLHeuristic:
         else:  # if not, reward low travel times
             travel_time = self._instance.t[current_node, i]
             reward = -1 * travel_time / self._instance.T_max
-            
+
         self._Q[current_node, i] += self._step_size * (
             reward
             + max(self._Q[i, j] for j in self._instance.N_0 if i != j)

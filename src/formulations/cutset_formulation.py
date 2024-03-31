@@ -2,7 +2,7 @@ import gurobipy as gp
 import networkx as nx
 import itertools
 
-from src.utils import Formulation, Instance, Solution
+from utils import Formulation, Instance, Solution
 
 
 # noinspection DuplicatedCode

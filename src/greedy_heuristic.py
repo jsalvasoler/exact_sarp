@@ -2,11 +2,13 @@ import random
 import time
 from typing import Tuple, List
 
+import pandas as pd
 import numpy as np
 
 from instance_loader import InstanceLoader
 from utils import Instance, Solution
 from config import Config
+from rl_heuristic import RLHeuristic
 
 
 class GreedyHeuristic:
@@ -309,22 +311,9 @@ class GreedyHeuristic:
         print("\nRunning heuristics to find feasible solutions.")
         spaces = [
             (np.linspace(0, 2, 75), {"sel_1": 0, "sel_2": 0, "sel_3": 1, "sel_4": 0}),
-            (
-                np.linspace(0, 2, 20)[1:],
-                {"sel_1": 1, "sel_2": 0, "sel_3": 1, "sel_4": 0},
-            ),
-            (
-                np.linspace(0, 2, 20)[1:],
-                {"sel_1": 1, "sel_2": 1, "sel_3": 1, "sel_4": 1},
-            ),
-            (
-                np.linspace(0, 2, 20)[1:],
-                {"sel_1": 1, "sel_2": 0, "sel_3": 1, "sel_4": 1},
-            ),
-            (
-                np.linspace(0, 4, 1000)[1:],
-                {"sel_1": 1, "sel_2": 1, "sel_3": 1, "sel_4": 1},
-            ),
+            (np.linspace(0, 2, 3), {"sel_1": 1, "sel_2": 0, "sel_3": 1, "sel_4": 0}),
+            (np.linspace(0, 2, 3), {"sel_1": 1, "sel_2": 1, "sel_3": 1, "sel_4": 1}),
+            (np.linspace(0, 2, 3), {"sel_1": 1, "sel_2": 0, "sel_3": 1, "sel_4": 1}),
         ]
         solutions = []
         for i, (randomness, active_selection_randomness) in enumerate(spaces):

@@ -2,8 +2,8 @@ import gurobipy as gp
 import itertools
 import networkx as nx
 
-from src.greedy_heuristic import GreedyHeuristic
-from src.utils import Formulation, Instance, Solution
+from greedy_heuristic import GreedyHeuristic
+from utils import Formulation, Instance, Solution
 
 
 class SCFFormulation(Formulation):
