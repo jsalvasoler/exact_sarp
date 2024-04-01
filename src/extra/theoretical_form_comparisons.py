@@ -1,4 +1,3 @@
-import math
 import warnings
 
 import networkx as nx
@@ -422,7 +421,7 @@ def try_to_see_stronger_or_weaker(form_1, form_2, N_exec=2000):
     form_1 = formulations[form_1]
     form_2 = formulations[form_2]
     for seed in range(0, N_exec):
-        seed = -seed
+        seed *= -1
         print(f"Seed: {seed}")
         results = run_experiment_stronger_weaker(seed, results, form_1, form_2)
     print(results)
@@ -433,7 +432,7 @@ def run_experiment_stronger_weaker(seed, results, form_1, form_2):
     N = random.randint(2, 8)
     K = random.randint(1, min(N, 4))
 
-    instance = Instance(N, K, random.randint(10, 40), 1, t=None, alpha=None, seed=seed)
+    instance = Instance(N, K, random.randint(4, 20), 1, t=None, alpha=None, seed=seed)
     instance.print()
 
     assert type(form_1) is not CutSetFormulation, "Put CutSetFormulation as the second argument"
@@ -485,7 +484,7 @@ formulations = {
 def main():
     # experiments_mtzopt_vs_scf()
     # finding_counter_example_mtzopt_vs_scf()
-    try_to_see_stronger_or_weaker("mtz", "cutset", N_exec=10000)
+    try_to_see_stronger_or_weaker("mtz", "scf", N_exec=10000)
 
 
 if __name__ == "__main__":

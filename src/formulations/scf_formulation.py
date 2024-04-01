@@ -31,9 +31,9 @@ class SCFFormulation(Formulation):
         self.z = None
 
         if "scf_cuts_" in self.name:
-            activations["cutset"] = True
+            self.activations["cutset"] = True
         else:
-            activations["cutset"] = False
+            self.activations["cutset"] = False
 
         if self.name == "scf_sep_cuts":
             self.callback = create_callback()

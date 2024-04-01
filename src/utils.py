@@ -60,6 +60,7 @@ class Instance:
                 if i <= j
             }
             self.t.update({(j, i): self.t[i, j] for i, j in self.t if i != j})
+            self.T_max = random.uniform(.3, .8) * sum(self.t.values()) / len(self.K)
         else:
             self.t = t
         self.T_max = T_max
@@ -234,7 +235,7 @@ class Solution:
         self.m = self.calculate_m()
         self.routes = self.calculate_routes()
 
-        self.check_obj()
+        # self.check_obj()
 
     def check_obj(self):
         """
