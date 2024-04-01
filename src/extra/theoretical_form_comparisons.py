@@ -3,11 +3,12 @@ import warnings
 
 import networkx as nx
 
-from src.formulations.cutset_formulation import CutSetFormulation
-from src.formulations.mtz_formulation import MTZFormulation
-from utils import Formulation, Instance, Solution
+from formulations.cutset_formulation import CutSetFormulation
+from formulations.mtz_formulation import MTZFormulation
 from formulations.scf_formulation import SCFFormulation
 from formulations.mtz_opt_formulation import MTZOptFormulation
+from utils import Formulation, Instance, Solution
+
 import random
 import gurobipy as gp
 
@@ -26,8 +27,6 @@ def run_experiment_mtzopt_vs_scf(draw, seed=1):
     scf_form = SCFFormulation(instance, linear_relax=True)
     scf_form.formulate()
 
-    profits = {i: random.randint(-3, 10) for i in instance.N}
-    # scf_form.solver.setObjective(gp.quicksum(profits[i] * scf_form.y[i] for i in instance.N), gp.GRB.MAXIMIZE)
     scf_form.solver.optimize()
 
     if scf_form.solver.status == gp.GRB.INFEASIBLE:
@@ -411,11 +410,7 @@ def try_to_see_stronger_or_weaker_mtz_vs_scf():
     print(results)
 
 
-def experiments_scf_vs_cutset():
-    try_to_see_stronger_or_weaker("mtz", "cutset")
-
-
-def try_to_see_stronger_or_weaker(form_1, form_2):
+def try_to_see_stronger_or_weaker(form_1, form_2, N_exec=2000):
     results = {
         f"{form_1}_higher": 0,
         f"{form_2}_higher": 0,
@@ -426,11 +421,8 @@ def try_to_see_stronger_or_weaker(form_1, form_2):
     }
     form_1 = formulations[form_1]
     form_2 = formulations[form_2]
-    N_exec = 2500
     for seed in range(0, N_exec):
         seed = -seed
-        if seed != -14:
-            continue
         print(f"Seed: {seed}")
         results = run_experiment_stronger_weaker(seed, results, form_1, form_2)
     print(results)
@@ -440,21 +432,11 @@ def run_experiment_stronger_weaker(seed, results, form_1, form_2):
     random.seed(seed)
     N = random.randint(2, 8)
     K = random.randint(1, min(N, 4))
-    t = {
-        (0, 1): 1 / 2,
-        (1, 0): 1 / 2,
-        (0, 2): 1,
-        (2, 0): 1,
-        (1, 2): 1,
-        (2, 1): 1,
-        (0, 0): 0,
-        (1, 1): 0,
-        (2, 2): 0,
-    }
-    alpha = {(1, 1): 0, (2, 1): 1}
+
     instance = Instance(N, K, random.randint(10, 40), 1, t=None, alpha=None, seed=seed)
     instance.print()
 
+    assert type(form_1) is not CutSetFormulation, "Put CutSetFormulation as the second argument"
     scf = form_1(instance, linear_relax=True)
     scf.formulate()
     scf.solver.optimize()
@@ -482,6 +464,13 @@ def run_experiment_stronger_weaker(seed, results, form_1, form_2):
             )
     except Exception as e:
         results["infeasible"] += 1
+
+    results[f"example_{scf.name}_higher"] = sorted(
+        results[f"example_{scf.name}_higher"], key=lambda x: x[-1]
+    )
+    results[f"example_{cutset.name}_higher"] = sorted(
+        results[f"example_{cutset.name}_higher"], key=lambda x: x[-1]
+    )
     return results
 
 
@@ -493,8 +482,11 @@ formulations = {
 }
 
 
-if __name__ == "__main__":
+def main():
     # experiments_mtzopt_vs_scf()
     # finding_counter_example_mtzopt_vs_scf()
-    # experiments_mtz_vs_scf()
-    experiments_scf_vs_cutset()
+    try_to_see_stronger_or_weaker("mtz", "cutset", N_exec=10000)
+
+
+if __name__ == "__main__":
+    main()

@@ -7,6 +7,7 @@ from formulations.scf_formulation import SCFFormulation
 from instance_loader import InstanceLoader
 from greedy_heuristic import GreedyHeuristic
 from rl_heuristic import RLHeuristic
+from extra.theoretical_form_comparisons import main as theory_main
 
 import time
 import pandas as pd
@@ -250,6 +251,7 @@ if __name__ == "__main__":
     # main()
     # big_experiment()
     # instance_difficulty_experiment()
-    test_heuristic_methods()
+    # test_heuristic_methods()
+    theory_main()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))
