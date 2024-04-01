@@ -24,11 +24,11 @@ class CutSetFormulation(Formulation):
         self.full_model = full_model
 
         if not self.full_model:
-            activations["cutset"] = False
+            self.activations["cutset"] = False
             self.callback = create_callback(activations)
             self.solver.Params.lazyConstraints = 1
         else:
-            activations["cutset"] = True
+            self.activations["cutset"] = True
 
     def fill_constraints(self):
         # Get constraint names by looking at attributes (methods) with prefix 'constraint_'

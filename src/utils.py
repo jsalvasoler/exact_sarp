@@ -79,6 +79,8 @@ class Instance:
                 raise ValueError(f"No sites with characteristic {c}.")
             else:
                 pass
+        
+        self.profits = {i: random.uniform(0, 1) for i in self.N}
 
     def print(self):
         """
@@ -147,6 +149,8 @@ class Formulation(ABC):
         self.linear_relax = linear_relax
         self.solver = gp.Model()
         self.solver._num_lazy_constraints_added = 0
+        if linear_relax:
+            self.solver.setParam("OptimalityTol", 1e-9)
         self.constraints = {}
         self.callback = None
 

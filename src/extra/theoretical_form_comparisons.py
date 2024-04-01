@@ -409,7 +409,7 @@ def try_to_see_stronger_or_weaker_mtz_vs_scf():
     print(results)
 
 
-def try_to_see_stronger_or_weaker(form_1, form_2, N_exec=2000):
+def try_to_see_stronger_or_weaker(form_1, form_2, N_exec=2000, top=False):
     results = {
         f"{form_1}_higher": 0,
         f"{form_2}_higher": 0,
@@ -421,13 +421,20 @@ def try_to_see_stronger_or_weaker(form_1, form_2, N_exec=2000):
     form_1 = formulations[form_1]
     form_2 = formulations[form_2]
     for seed in range(0, N_exec):
+        # if seed != 2083:
+        #     continue
         seed *= -1
         print(f"Seed: {seed}")
-        results = run_experiment_stronger_weaker(seed, results, form_1, form_2)
-    print(results)
+        results = run_experiment_stronger_weaker(seed, results, form_1, form_2, top)
+    
+    for k, v in results.items():
+        if "example" in k:
+            print(f"{k}: {v[:10]}")
+        else:
+            print(f"{k}: {v}")
 
 
-def run_experiment_stronger_weaker(seed, results, form_1, form_2):
+def run_experiment_stronger_weaker(seed, results, form_1, form_2, top):
     random.seed(seed)
     N = random.randint(2, 8)
     K = random.randint(1, min(N, 4))
@@ -438,12 +445,42 @@ def run_experiment_stronger_weaker(seed, results, form_1, form_2):
     assert type(form_1) is not CutSetFormulation, "Put CutSetFormulation as the second argument"
     scf = form_1(instance, linear_relax=True)
     scf.formulate()
+    if top:
+        if scf.name in ["cutset", "mtz"]:
+            scf.solver.setObjective(
+                gp.quicksum(instance.profits[i] * scf.y[i, k] 
+                            for i in instance.N
+                            for k in instance.K)
+                / sum(instance.profits.values()),
+                gp.GRB.MAXIMIZE
+            )
+        else:
+            scf.solver.setObjective(
+                gp.quicksum(instance.profits[i] * scf.y[i] for i in instance.N)
+                / sum(instance.profits.values()), 
+                gp.GRB.MAXIMIZE
+            )
     scf.solver.optimize()
     if type(form_2) is CutSetFormulation:
         cutset = form_2(instance, linear_relax=True, full_model=True)
     else:
         cutset = form_2(instance, linear_relax=True)
     cutset.formulate()
+    if top:
+        if cutset.name in ["cutset", "mtz"]:
+            cutset.solver.setObjective(
+                gp.quicksum(instance.profits[i] * cutset.y[i, k] 
+                            for i in instance.N
+                            for k in instance.K)
+                / sum(instance.profits.values()),
+                gp.GRB.MAXIMIZE
+            )
+        else:
+            cutset.solver.setObjective(
+                gp.quicksum(instance.profits[i] * cutset.y[i] for i in instance.N)
+                / sum(instance.profits.values()), 
+                gp.GRB.MAXIMIZE
+            )
     cutset.solver.optimize()
 
     try:
@@ -484,7 +521,7 @@ formulations = {
 def main():
     # experiments_mtzopt_vs_scf()
     # finding_counter_example_mtzopt_vs_scf()
-    try_to_see_stronger_or_weaker("mtz", "scf", N_exec=10000)
+    try_to_see_stronger_or_weaker("scf", "mtz", N_exec=10000, top=True)
 
 
 if __name__ == "__main__":
