@@ -5,9 +5,9 @@ from formulations.mtz_formulation import MTZFormulation
 from formulations.mtz_opt_formulation import MTZOptFormulation
 from formulations.scf_formulation import SCFFormulation
 from instance_loader import InstanceLoader
-from greedy_heuristic import GreedyHeuristic
-from rl_heuristic import RLHeuristic
-from extra.theoretical_form_comparisons import main as theory_main
+from heuristics.greedy_heuristic import GreedyHeuristic
+from heuristics.rl_heuristic import RLHeuristic
+from heuristics.grasp import GRASP
 
 import time
 import pandas as pd
@@ -139,6 +139,7 @@ def instance_difficulty_experiment():
 
 
 def test_heuristic_methods():
+
     config = Config()
     # assert config.instance_type == "large", "Check config settings. Need type = large"
     instance_loader = InstanceLoader(config)
@@ -146,7 +147,7 @@ def test_heuristic_methods():
     results = {}
 
     try:
-        results_df = pd.read_csv("heuristic_results.csv", sep=";", decimal=",")
+        results_df = pd.read_csv("results/heuristic_results.csv", sep=";", decimal=",")
     except FileNotFoundError:
         results_df = pd.DataFrame(
             columns=["instance", "method", "objective", "runtime"]
@@ -159,33 +160,16 @@ def test_heuristic_methods():
         Z_GH = Z_TS / (1 + instance.instance_results["ts_vs_gh_gap"] / 100)
         greedy_heuristic = GreedyHeuristic(instance)
         rl_heuristic = RLHeuristic(instance, n_episodes=10000)
+        grasp = GRASP(instance, n_trials=20)
 
-        start_time = time.time()
-        det_sol = greedy_heuristic.build_solution(0)
-        runtime_det = time.time() - start_time
-
-        start_time = time.time()
-        solutions = greedy_heuristic.run_heuristics(30, 1)
-        solution = solutions[0]
-        runtime_gh = time.time() - start_time
-
-        start_time = time.time()
-        rl_solution = rl_heuristic.run()
-        runtime_rl = time.time() - start_time
-
-        results[instance_name] = (
-            Z_TS,
-            Z_GH,
-            solution.obj,
-            det_sol.obj,
-            rl_solution.obj,
-        )
-        print(
-            f"Z_TS = {Z_TS}, Z_GH = {round(Z_GH, 3)}, "
-            f"Z_our_greedy = {round(solution.obj, 3)}, "
-            f"Z_our_det = {round(det_sol.obj, 3)}, "
-            f"Z_rl = {round(rl_solution.obj, 3)}"
-        )
+        # results[instance_name] = (
+        #     Z_TS,
+        #     Z_GH,
+        #     solution.obj,
+        #     det_sol.obj,
+        #     rl_solution.obj,
+        #     grasp_solution.obj,
+        # )
 
         rows_to_add = []
 
@@ -193,6 +177,9 @@ def test_heuristic_methods():
             (results_df["instance"] == instance_name)
             & (results_df["method"] == "greedy_heuristic_det")
         ].empty:
+            start_time = time.time()
+            det_sol = greedy_heuristic.build_solution(0)
+            runtime_det = time.time() - start_time
             row = [instance_name, "greedy_heuristic_det", det_sol.obj, runtime_det]
             rows_to_add.append(row)
         if results_df[
@@ -203,15 +190,35 @@ def test_heuristic_methods():
             rows_to_add.append(row)
         if results_df[
             (results_df["instance"] == instance_name)
-            & (results_df["method"] == "GH_paper")
+            & (results_df["method"] == "GH")
         ].empty:
             row = [instance_name, "GH", Z_GH, 0]
             rows_to_add.append(row)
+        if results_df[
+            (results_df["instance"] == instance_name)
+            & (results_df["method"] == "greedy_heuristic")
+        ].empty:
+            start_time = time.time()
+            solutions = greedy_heuristic.run_heuristics(30, 50)
+            solution = solutions[0]
+            runtime_gh = time.time() - start_time
+            row = [instance_name, "greedy_heuristic", solution.obj, runtime_gh]
+            rows_to_add.append(row)
 
-        row = [instance_name, "greedy_heuristic", solution.obj, runtime_gh]
-        rows_to_add.append(row)
-        row = [instance_name, "rl_heuristic", rl_solution.obj, runtime_rl]
-        rows_to_add.append(row)
+            grasp_solution = grasp.run_grasp_after_sampling(30, solution_pool=solutions)
+            runtime_grasp = time.time() - start_time
+            row = [instance_name, "grasp", grasp_solution.obj, runtime_grasp]
+            rows_to_add.append(row)
+
+        if results_df[
+            (results_df["instance"] == instance_name)
+            & (results_df["method"] == "rl_heuristic")
+        ].empty:
+            start_time = time.time()
+            rl_solution = rl_heuristic.run()
+            runtime_rl = time.time() - start_time
+            row = [instance_name, "rl_heuristic", rl_solution.obj, runtime_rl]
+            rows_to_add.append(row)
 
         for row in rows_to_add:
             results_df.loc[len(results_df), :] = row
@@ -220,29 +227,29 @@ def test_heuristic_methods():
             "results/heuristic_results.csv", sep=";", decimal=",", index=False
         )
 
-    n_better, n_worse, beat_TS, random_wins_det = 0, 0, 0, 0
-    gap, gap_ts, gap_rl_ts, gap_rl_gh = 0, 0, 0, 0
-    for instance_name, (Z_TS, Z_GH, obj, det_obj, rl_obj) in results.items():
-        gap += (obj - Z_GH) / Z_GH if Z_GH > 0 else 0
-        gap_ts += (obj - Z_TS) / Z_TS if Z_TS > 0 else 0
-        gap_rl_ts += (rl_obj - Z_TS) / Z_TS if Z_TS > 0 else 0
-        gap_rl_gh += (rl_obj - Z_GH) / Z_GH if Z_GH > 0 else 0
-        if Z_GH > obj:
-            n_worse += 1
-        else:
-            n_better += 1
-        if Z_TS <= obj:
-            beat_TS += 1
-        if obj > det_obj:
-            random_wins_det += 1
-    print("----------- Results --------------")
-    print(f"Z_GH > Z_gh: {n_worse} / {len(results)} times")
-    print(f"Z_TS <= Z_gh: {beat_TS} / {len(results)} times")
-    print(f"Z_gh > Z_det: {random_wins_det} / {len(results)} times")
-    print(f"AVG gap (Z_gh - Z_GH) / Z_GH %: {round(100 * gap / len(results), 3)}")
-    print(f"AVG gap (Z_gh - Z_TS) / Z_TS %: {round(100 * gap_ts / len(results), 3)}")
-    print(f"AVG gap (Z_rl - Z_GH) / Z_GH %: {round(100 * gap_rl_gh / len(results), 3)}")
-    print(f"AVG gap (Z_rl - Z_TS) / Z_TS %: {round(100 * gap_rl_ts / len(results), 3)}")
+    # n_better, n_worse, beat_TS, random_wins_det = 0, 0, 0, 0
+    # gap, gap_ts, gap_rl_ts, gap_rl_gh = 0, 0, 0, 0
+    # for instance_name, (Z_TS, Z_GH, obj, det_obj, rl_obj) in results.items():
+    #     gap += (obj - Z_GH) / Z_GH if Z_GH > 0 else 0
+    #     gap_ts += (obj - Z_TS) / Z_TS if Z_TS > 0 else 0
+    #     gap_rl_ts += (rl_obj - Z_TS) / Z_TS if Z_TS > 0 else 0
+    #     gap_rl_gh += (rl_obj - Z_GH) / Z_GH if Z_GH > 0 else 0
+    #     if Z_GH > obj:
+    #         n_worse += 1
+    #     else:
+    #         n_better += 1
+    #     if Z_TS <= obj:
+    #         beat_TS += 1
+    #     if obj > det_obj:
+    #         random_wins_det += 1
+    # print("----------- Results --------------")
+    # print(f"Z_GH > Z_gh: {n_worse} / {len(results)} times")
+    # print(f"Z_TS <= Z_gh: {beat_TS} / {len(results)} times")
+    # print(f"Z_gh > Z_det: {random_wins_det} / {len(results)} times")
+    # print(f"AVG gap (Z_gh - Z_GH) / Z_GH %: {round(100 * gap / len(results), 3)}")
+    # print(f"AVG gap (Z_gh - Z_TS) / Z_TS %: {round(100 * gap_ts / len(results), 3)}")
+    # print(f"AVG gap (Z_rl - Z_GH) / Z_GH %: {round(100 * gap_rl_gh / len(results), 3)}")
+    # print(f"AVG gap (Z_rl - Z_TS) / Z_TS %: {round(100 * gap_rl_ts / len(results), 3)}")
 
 
 if __name__ == "__main__":
@@ -251,7 +258,7 @@ if __name__ == "__main__":
     # main()
     # big_experiment()
     # instance_difficulty_experiment()
-    # test_heuristic_methods()
-    theory_main()
+    test_heuristic_methods()
+    # theory_main()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))

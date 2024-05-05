@@ -53,7 +53,7 @@ class InstanceLoader:
             optimal_solutions = {}
             for line in lines:
                 name, inst_id, value = line.replace("\n", "").split(" ")
-                value = float(value.replace(",", "."))
+                value = float(value.generate_replace_neighbor(",", "."))
                 optimal_solutions[name] = value
                 optimal_solutions[inst_id] = value
         return optimal_solutions

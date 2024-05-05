@@ -18,16 +18,16 @@ class Instance:
     """
 
     def __init__(
-        self,
-        N_size,
-        K_size,
-        T_max,
-        C_size,
-        t=None,
-        alpha=None,
-        seed=None,
-        full_name=None,
-        instance_results: dict = None,
+            self,
+            N_size,
+            K_size,
+            T_max,
+            C_size,
+            t=None,
+            alpha=None,
+            seed=None,
+            full_name=None,
+            instance_results: dict = None,
     ):
         self.name = None if full_name is None else full_name[3:-4]
         self.id = None if full_name is None else int(full_name[:2])
@@ -43,7 +43,7 @@ class Instance:
 
         if self.instance_type == "large":
             assert self.id is None or (
-                self.id <= 48 or 75 <= T_max <= 250
+                    self.id <= 48 or 75 <= T_max <= 250
             ), f"Instance {self.id} has invalid T_max = {T_max}."
 
         if seed is not None:
@@ -70,6 +70,7 @@ class Instance:
             if alpha is None
             else alpha
         )
+        self.useless = {i for i in self.N if sum(self.alpha[i, c] for c in self.C) == 0}
         self.tau = {c: sum(self.alpha[i, c] for i in self.N) for c in self.C}
         for c in self.C:
             if alpha is None and self.tau[c] == 0:
@@ -79,7 +80,7 @@ class Instance:
                 raise ValueError(f"No sites with characteristic {c}.")
             else:
                 pass
-        
+
         self.profits = {i: random.uniform(0, 1) for i in self.N}
 
     def print(self):
@@ -92,7 +93,7 @@ class Instance:
         print(f"C = {len(self.C)} (characteristics)\n")
 
     def validate_objective_for_small_instances(
-        self, obj: float, exception: bool = False
+            self, obj: float, exception: bool = False
     ):
         """
         Validate the objective value of the given instance. If it's a small instance, the optimal is known and the
@@ -139,10 +140,10 @@ class Formulation(ABC):
     """
 
     def __init__(
-        self,
-        instance: Instance,
-        activations: Dict[str, bool] = None,
-        linear_relax: bool = False,
+            self,
+            instance: Instance,
+            activations: Dict[str, bool] = None,
+            linear_relax: bool = False,
     ):
         self.instance = instance
         self.activations = activations if activations is not None else {}
@@ -238,8 +239,10 @@ class Solution:
         self.Wp = self.calculate_Wp()
         self.m = self.calculate_m()
         self.routes = self.calculate_routes()
+        self.visited = {i for i in self.inst.N if sum(self.y[i, k] for k in self.inst.K) >= 1}
 
-        # self.check_obj()
+        self.neighbor_types = ["replace"]
+        self.check_obj()
 
     def check_obj(self):
         """
@@ -268,7 +271,7 @@ class Solution:
         """
         return sum(self.inst.t[i, j] for i, j in zip(route[:-1], route[1:]))
 
-    def calculate_coverage_ratios(self) -> Dict[str, float]:
+    def calculate_coverage_ratios(self) -> Dict[int, float]:
         """
         Calculate the coverage ratios of the solution.
         """
@@ -277,8 +280,7 @@ class Solution:
                 self.inst.alpha[i, c] * self.y[i, k]
                 for i in self.inst.N
                 for k in self.inst.K
-            )
-            / self.inst.tau[c]
+            ) / self.inst.tau[c]
             for c in self.inst.C
         }
 
@@ -400,6 +402,101 @@ class Solution:
         )
 
         plt.show()
+
+    def generate_neighbor(self, type):
+        match type:
+            case "replace":
+                return self.generate_replace_neighbor()
+            case _:
+                raise ValueError(f"Invalid neighbor type: {type}.")
+
+    def generate_replace_neighbor(self):
+        # Insert candidates are those that are not in the route
+        insert_candidates = {i for i in self.inst.N if i not in self.visited and i not in self.inst.useless} - {0}
+        if len(insert_candidates) == 0:
+            return self
+        # Sort them by minimum coverage ratio of all characteristics that each site covers, in ascending order
+        insert_candidates = sorted(
+            insert_candidates,
+            key=lambda i: min(
+                self.coverage_ratios[c] for c in self.inst.C if self.inst.alpha[i, c] == 1
+            ),
+        )
+        # Replace candidates are those that are in the route except for the depot
+        replace_candidates = {i for i in self.visited} - {0}
+        # Sort them by minimum coverage ratio of all characteristics that each site covers, in descending order
+        replace_candidates = sorted(
+            replace_candidates,
+            key=lambda i: min(
+                self.coverage_ratios[c] for c in self.inst.C if self.inst.alpha[i, c] == 1
+            ),
+            reverse=True,
+        )
+
+        # We start with the first candidate of each type. If insertion not feasible, then with probability 0.5 we
+        # move to a replace candidate, and with probability 0.5 we move to the next insert candidate.
+        insert_index = 0
+        replace_index = 0
+        while insert_index < len(insert_candidates) and replace_index < len(replace_candidates):
+            insert_candidate = insert_candidates[insert_index]
+            replace_candidate = replace_candidates[replace_index]
+            # If the insertion is feasible, we insert the candidate and return the new solution
+            if self.feasible_replace(insert_candidate, replace_candidate):
+                return self.replace(insert_candidate, replace_candidate)
+            else:
+                if random.random() < 0.5:
+                    replace_index += 1
+                else:
+                    insert_index += 1
+
+        # If we reach the end of the candidates, we return the current solution
+        return self
+
+    def feasible_replace(self, insert_candidate, replace_candidate):
+        # We need to make sure that route durations would be respected
+        route_index = [i for i, route in self.routes.items() if replace_candidate in route[0]][0]
+        index_in_route = self.routes[route_index][0].index(replace_candidate)
+        time_to_candidate = self.inst.t[self.routes[route_index][0][index_in_route - 1], insert_candidate]
+        time_from_candidate = self.inst.t[insert_candidate, self.routes[route_index][0][index_in_route + 1]]
+        time_to_replacement = self.inst.t[self.routes[route_index][0][index_in_route - 1], replace_candidate]
+        time_from_replacement = self.inst.t[replace_candidate, self.routes[route_index][0][index_in_route + 1]]
+
+        return self.routes[route_index][
+            1] + time_to_candidate + time_from_candidate - time_to_replacement - time_from_replacement <= self.inst.T_max
+
+    def replace(self, insert_candidate, replace_candidate):
+        k = [i for i, route in self.routes.items() if replace_candidate in route[0]][0]
+        route = self.routes[k][0]
+        index_in_route = route.index(replace_candidate)
+        next_in_route = route[index_in_route + 1]
+        prev_in_route = route[index_in_route - 1]
+
+        assert self.x[prev_in_route, replace_candidate, k] == 1
+        assert self.x[replace_candidate, next_in_route, k] == 1
+        assert self.x[prev_in_route, insert_candidate, k] == 0
+        assert self.x[insert_candidate, next_in_route, k] == 0
+        assert self.y[replace_candidate, k] >= 1
+        assert self.y[insert_candidate, k] == 0
+
+        self.x[prev_in_route, insert_candidate, k] = 1
+        self.x[insert_candidate, next_in_route, k] = 1
+        self.x[prev_in_route, replace_candidate, k] = 0
+        self.x[replace_candidate, next_in_route, k] = 0
+
+        self.y[replace_candidate, k] -= 1
+        self.y[insert_candidate, k] += 1
+
+        self.coverage_ratios = self.calculate_coverage_ratios()
+        # self.Wp = self.calculate_Wp()
+        self.m = self.calculate_m()
+        self.routes = self.calculate_routes()
+        self.visited.add(insert_candidate)
+        self.visited.remove(replace_candidate)
+
+        self.obj = min(self.coverage_ratios.values())
+        self.check_obj()
+
+        return self
 
 
 FIELDS_INSTANCE_RESULTS = [
