@@ -7,7 +7,7 @@ This repository is accompanied by a full report on the project results, which is
 - [Exact Methods for SARP.pdf](https://github.com/jsalvasoler/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/Exact%20Methods%20for%20the%20Selective%20Assessment%20Routing%20Problem.pdf)
 
 The results on the literature benchmark instances obtained so far outperform in many cases the specialized state-of-the-art algorithms for SARP. All the results are available here:
-- [Results on 112 benchmark instances](https://github.com/jsalva9/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/all_results.csv)
+- [Benchmark results](https://github.com/jsalva9/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/all_results.csv)
 
 The following is the abstract of the project.
 
