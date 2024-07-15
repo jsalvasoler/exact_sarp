@@ -4,7 +4,7 @@ This repository contains the implementation of the formulations and algorithms p
 The author of the code is Joan Salvà Soler, and Vera Hemmelmayr and Günther Raidl supervised the project. 
 
 This repository is accompanied by a full report on the project results, which is available on the link below. Our main finding is that the proposed Single Commodity Flow formulation is theoretically stronger than the current best MTZ-3 formulation by B. Balcik.
-- [Exact Methods for SARP.pdf](https://github.com/jsalvasoler/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/Exact%20Methods%20for%20the%20Selective%20Assessment%20Routing%20Problem.pdf)
+- [Exact Methods for SARP](https://github.com/jsalvasoler/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/Exact%20Methods%20for%20the%20Selective%20Assessment%20Routing%20Problem.pdf)
 
 The results on the literature benchmark instances obtained so far outperform in many cases the specialized state-of-the-art algorithms for SARP. All the results are available here:
 - [Benchmark results](https://github.com/jsalva9/exact_sarp/blob/master/Theoretical%20Work%20and%20Results/all_results.csv)
