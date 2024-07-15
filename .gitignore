@@ -1,5 +1,4 @@
 config.yaml
-*.txt
 *.csv
 readme.md
 *.iml
@@ -13,3 +12,5 @@ venv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
+#
