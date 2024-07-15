@@ -65,17 +65,14 @@ def big_experiment():
 
     # Find instances + formulations that have already been solved
     # That means either the solve_time is greater than the time_limit or the mip_gap is zero + tolerance
+    form_names = ["scf_sep_cuts"]
+
+    results['id'] = results['id'].astype(int)
     solved = results.loc[
-        (results["type"] == "case")
-        & (
-            (results["solve_time"] >= config.time_limit * 60)
-            | (results["mip_gap"].abs() < 1e-6)
-        ),
+        (results["type"] == "large") & (results["formulation"].isin(form_names)),
         ["id", "formulation"],
     ].values
     ids = list(range(1, 24))
-    # ids = [60, 66, 77, 79, 82, 84]  # Fast ids
-    form_names = ["mtz_opt"]
 
     all_executions = {
         (instance_id, form_name) for instance_id in ids for form_name in form_names
@@ -256,9 +253,9 @@ if __name__ == "__main__":
     profiler = Profiler()
     profiler.start()
     # main()
-    # big_experiment()
+    big_experiment()
     # instance_difficulty_experiment()
-    test_heuristic_methods()
+    # test_heuristic_methods()
     # theory_main()
     profiler.stop()
     print(profiler.output_text(unicode=True, color=True))
