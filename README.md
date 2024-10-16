@@ -60,7 +60,10 @@ activations:  # whether a particular constraint is added to the formulation. If 
 
 ```
 
+### Instances
+The project used the instances gathered by Balcik, B. They are available for public use in the `data` directory. This data set was developed as part of the following funded project.
 
+Balcik, B. (Principal Investigator). (2014). Selective Routing Problems for Post-Disaster Needs Assessment: Models and Solution Methods. The Scientific and Technological Research Council of Türkiye (TÜBİTAK). Grant No. 213M414.
 
 
 ### Abstract
@@ -72,3 +75,5 @@ of different characteristics in a balanced way. We explore exact approaches base
 on mixed integer linear programming: different mathematical formulations are
 presented, and theoretical results regarding their strength are derived. The models are experimentally evaluated on a set of test instances, and the best model is
 applied to a real-world scenario.
+
+
