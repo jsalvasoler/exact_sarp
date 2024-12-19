@@ -65,6 +65,8 @@ The project used the instances gathered by Balcik, B. They are available for pub
 
 Balcik, B. (Principal Investigator). (2014). Selective Routing Problems for Post-Disaster Needs Assessment: Models and Solution Methods. The Scientific and Technological Research Council of Türkiye (TÜBİTAK). Grant No. 213M414.
 
+![Example instance](./data/case_graph.jpg)
+
 
 ### Abstract
 The Selective Assessment Routing Problem (SARP) addresses the site selection
