@@ -1,4 +1,4 @@
-# Exact methods for the SARP problem: Selective Assessment Routing Problem
+# Exact methods for the Selective Assessment Routing Problem
 
 This repository contains the implementation of the formulations and algorithms proposed in the research project **Exact methods for the SARP problem**. 
 The author of the code is Joan Salvà Soler, and Vera Hemmelmayr and Günther Raidl supervised the project. 
